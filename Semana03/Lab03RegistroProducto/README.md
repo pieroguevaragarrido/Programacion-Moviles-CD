@@ -10,9 +10,9 @@ Card de resumen con el importe calculado.
 
 Capturas:
 
-![img.png](img.png)
+![img.png](app/img.png)
 
-![img_1.png](img_1.png)
+![img_1.png](app/img_1.png)
 
 ¿Qué pasa si declaras las variables SIN remember?
 
