@@ -10,9 +10,9 @@ Card de resumen con el importe calculado.
 
 Capturas:
 
-![img.png](app/img.png)
+<img width="197" height="187" alt="image" src="https://github.com/user-attachments/assets/c8505c90-dc06-40d7-b86d-974408d19877" />
 
-![img_1.png](app/img_1.png)
+<img width="200" height="257" alt="image" src="https://github.com/user-attachments/assets/1b40733d-13f7-4291-a7c0-04c2489b5d9c" />
 
 ¿Qué pasa si declaras las variables SIN remember?
 
