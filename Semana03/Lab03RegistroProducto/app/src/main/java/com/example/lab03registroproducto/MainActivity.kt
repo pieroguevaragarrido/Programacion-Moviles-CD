@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.lab03registroproducto.ui.theme.Lab03RegistroProductoTheme
 
@@ -97,7 +98,8 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                ) {
+                )
+                {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(nombre, style = MaterialTheme.typography.titleLarge)
                         Text("Precio: S/ " + String.format("%.2f", precioNum))
@@ -109,6 +111,11 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
                         )
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "✓ Producto registrado correctamente",
+                    color = Color(0xFF2E7D32)
+                )
             }
         }
     }
