@@ -20,3 +20,9 @@ Al quitar remember, probé escribir en el campo de nombre y no me dejaba, teclea
 y simplemente no aparecia. Entendí que sin remember, Compose no guarda el valor entre 
 recomposiciones cada vez que la pantalla se redibuja, la variable vuelve a su estado inicial 
 vacío. Con remember sí "recuerda" lo que había antes de redibujar, por eso el campo funciona.
+
+Mejora con IA:
+
+| Prompt que usé | Qué generó Gemini | Qué acepté o corregí                                                                                                             |
+|---|---|----------------------------------------------------------------------------------------------------------------------------------|
+| Agregar validación de campos vacíos y botón Limpiar en PantallaRegistro | Validación con isEmpty() y botón Limpiar igual de estilo que Agregar | Cambié isEmpty por isBlank (detectaba mal los espacios) y usé OutlinedButton en Limpiar para no romper la regla de un solo color |
