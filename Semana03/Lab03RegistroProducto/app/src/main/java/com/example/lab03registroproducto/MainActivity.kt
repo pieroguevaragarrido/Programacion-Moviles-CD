@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -89,7 +90,7 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
         Button(
             onClick = {
                 // Validación para mostrar error o resumen
-                if (nombre.isEmpty() || precio.isEmpty() || cantidad.isEmpty()) {
+                if (nombre.isBlank() || precio.isBlank() || cantidad.isBlank()) {
                     mostrarError = true
                     mostrarResumen = false
                 } else {
@@ -105,7 +106,7 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // Nuevo botón Limpiar
-        Button(
+        OutlinedButton(
             onClick = {
                 nombre = ""
                 precio = ""
