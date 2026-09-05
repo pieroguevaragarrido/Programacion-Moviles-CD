@@ -49,6 +49,8 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
     var precio by remember { mutableStateOf("") }
     var cantidad by remember { mutableStateOf("") }
     var mostrarResumen by remember { mutableStateOf(false) }
+    var mostrarError by remember { mutableStateOf(false) } // Nuevo estado para controlar el error
+
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
         Text(
             text = "Nuevo producto",
@@ -83,39 +85,74 @@ fun PantallaRegistro(modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(1f)
             )
         }
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { mostrarResumen = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("AGREGAR PRODUCTO")
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            if (mostrarResumen) {
-                val precioNum = precio.toDoubleOrNull() ?: 0.0
-                val cantidadNum = cantidad.toIntOrNull() ?: 0
-                val importe = precioNum * cantidadNum
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                )
-                {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(nombre, style = MaterialTheme.typography.titleLarge)
-                        Text("Precio: S/ " + String.format("%.2f", precioNum))
-                        Text("Cantidad: " + cantidadNum)
-                        Text(
-                            text = "Importe: S/ " + String.format("%.2f", importe),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = {
+                // Validación para mostrar error o resumen
+                if (nombre.isEmpty() || precio.isEmpty() || cantidad.isEmpty()) {
+                    mostrarError = true
+                    mostrarResumen = false
+                } else {
+                    mostrarError = false
+                    mostrarResumen = true
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "✓ Producto registrado correctamente",
-                    color = Color(0xFF2E7D32)
-                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("AGREGAR PRODUCTO")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Nuevo botón Limpiar
+        Button(
+            onClick = {
+                nombre = ""
+                precio = ""
+                cantidad = ""
+                mostrarResumen = false
+                mostrarError = false
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Limpiar")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Mostrar mensaje de error si hay campos vacíos
+        if (mostrarError) {
+            Text(
+                text = "Error: Todos los campos deben estar llenos.",
+                color = Color.Red
+            )
+        }
+
+        if (mostrarResumen) {
+            val precioNum = precio.toDoubleOrNull() ?: 0.0
+            val cantidadNum = cantidad.toIntOrNull() ?: 0
+            val importe = precioNum * cantidadNum
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+            )
+            {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(nombre, style = MaterialTheme.typography.titleLarge)
+                    Text("Precio: S/ " + String.format("%.2f", precioNum))
+                    Text("Cantidad: " + cantidadNum)
+                    Text(
+                        text = "Importe: S/ " + String.format("%.2f", importe),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "✓ Producto registrado correctamente",
+                color = Color(0xFF2E7D32)
+            )
         }
     }
+}
