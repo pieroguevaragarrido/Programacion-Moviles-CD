@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +36,9 @@ fun PantallaNotas() {
     var notaPOO by remember { mutableStateOf(0f) }
     var notaMoviles by remember { mutableStateOf(0f) }
     var notaBD by remember { mutableStateOf(0f) }
+    var redondear by remember { mutableStateOf(false) }
+    var confirmado by remember { mutableStateOf(false) }
+    var mostrarResultado by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -64,6 +68,39 @@ fun PantallaNotas() {
             Spacer(modifier = Modifier.height(16.dp))
 
             FilaCurso("Base de Datos", "25%", notaBD) { notaBD = it }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Redondear promedio final")
+                Switch(checked = redondear, onCheckedChange = { redondear = it })
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = confirmado, onCheckedChange = { confirmado = it })
+                Text("Confirmo que las notas son correctas")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { mostrarResultado = true },
+                enabled = confirmado,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("CALCULAR PROMEDIO")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (!mostrarResultado) {
+                Text(
+                    text = "Asigna las notas y confirma para calcular",
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
         }
     }
 }
