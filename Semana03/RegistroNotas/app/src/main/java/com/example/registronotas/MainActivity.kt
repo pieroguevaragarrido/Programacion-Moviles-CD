@@ -12,10 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.registronotas.ui.theme.RegistroNotasTheme
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,6 +57,14 @@ fun PantallaNotas() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            MaterialTheme.colorScheme.background
+                        )
+                    )
+                )
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
@@ -100,7 +110,63 @@ fun PantallaNotas() {
                     text = "Asigna las notas y confirma para calcular",
                     color = MaterialTheme.colorScheme.outline
                 )
+            } else {
+                val promedioPonderado = notaFundamentos * 0.20f +
+                        notaPOO * 0.25f +
+                        notaMoviles * 0.30f +
+                        notaBD * 0.25f
+
+                val promedioFinal = if (redondear) {
+                    promedioPonderado.roundToInt().toFloat()
+                } else {
+                    promedioPonderado
+                }
+
+                val (observacion, colorChip) = when {
+                    promedioFinal >= 17f -> "EXCELENTE" to Color(0xFF1B5E20)
+                    promedioFinal >= 13f -> "APROBADO" to Color(0xFF4CAF50)
+                    promedioFinal >= 10f -> "EN RECUPERACIÓN" to Color(0xFFFFA000)
+                    else -> "DESAPROBADO" to Color(0xFFD32F2F)
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Promedio ponderado: " + String.format("%.2f", promedioPonderado),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "Promedio final: " + String.format("%.2f", promedioFinal) +
+                                    if (redondear) " (redondeado)" else "",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(colorChip, shape = MaterialTheme.shapes.small)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(text = observacion, color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "✓ Promedio calculado correctamente",
+                    color = Color(0xFF2E7D32)
+                )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "Desarrollado por: Piero Guevara",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline
+            )
         }
     }
 }
@@ -115,7 +181,10 @@ fun FilaCurso(nombre: String, peso: String, nota: Float, onNotaChange: (Float) -
             Text("$nombre ($peso)", style = MaterialTheme.typography.bodyLarge)
             Box(
                 modifier = Modifier
-                    .background(Color(0xFF4CAF50), shape = MaterialTheme.shapes.small)
+                    .background(
+                        if (nota < 13f) Color(0xFFD32F2F) else Color(0xFF4CAF50),
+                        shape = MaterialTheme.shapes.small
+                    )
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(text = nota.toInt().toString(), color = Color.White, fontWeight = FontWeight.Bold)
