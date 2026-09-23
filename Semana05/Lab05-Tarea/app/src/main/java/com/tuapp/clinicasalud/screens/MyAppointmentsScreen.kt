@@ -5,8 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -22,6 +24,34 @@ val citasDePrueba = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyAppointmentsScreen(navController: NavController) {
+    val listaCitas = remember { mutableStateListOf(*citasDePrueba.toTypedArray()) }
+    var citaACancelar by remember { mutableStateOf<CitaGuardada?>(null) }
+
+    if (citaACancelar != null) {
+        AlertDialog(
+            onDismissRequest = { citaACancelar = null },
+            title = { Text("Cancelar cita") },
+            text = { Text("¿Estas seguro de cancelar esta cita con ${citaACancelar?.medico}?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        citaACancelar?.let { listaCitas.remove(it) }
+                        citaACancelar = null
+                    }
+                ) {
+                    Text("Si, cancelar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { citaACancelar = null }
+                ) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -38,15 +68,32 @@ fun MyAppointmentsScreen(navController: NavController) {
             contentPadding = padding,
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            items(citasDePrueba) { cita ->
+            items(listaCitas) { cita ->
                 Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(cita.medico, style = MaterialTheme.typography.titleMedium)
-                        Text("${cita.fecha} - ${cita.hora}")
-                        Text(
-                            text = if (cita.confirmada) "Confirmada" else "Completada",
-                            color = if (cita.confirmada) Color(0xFF2E7D32) else Color.Gray
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(cita.medico, style = MaterialTheme.typography.titleMedium)
+                            Text("${cita.fecha} - ${cita.hora}")
+                            Text(
+                                text = if (cita.confirmada) "Confirmada" else "Completada",
+                                color = if (cita.confirmada) Color(0xFF2E7D32) else Color.Gray
+                            )
+                        }
+                        if (cita.confirmada) {
+                            IconButton(onClick = { citaACancelar = cita }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Cancelar cita",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
                     }
                 }
             }
