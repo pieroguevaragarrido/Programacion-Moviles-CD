@@ -1,0 +1,52 @@
+Prompt que Gemini utilizó:
+
+Quiero mejorar la presentación visual de mi app Android hecha en Jetpack Compose (proyecto NavLab, package com.tuapp.navlab). NO cambies la lógica de navegación existente (NavHost, Screen.kt con sealed class, rutas, argumentos tipados con NavType.IntType, popUpTo, popBackStack). Solo rediseña la apariencia de las pantallas.
+
+CONTEXTO DEL PROYECTO
+- Screen.kt: sealed class con rutas Home, List, Profile, Detail(itemId)
+- AppNavigation.kt: NavHost con las 4 rutas
+- HomeScreen.kt, ListScreen.kt, DetailScreen.kt, ProfileScreen.kt
+
+ESTILO VISUAL GENERAL
+- Paleta principal: morado/violeta con degradado (de un morado oscuro a uno más claro/lavanda) como fondo en varias pantallas
+- Tarjetas (Card) con esquinas redondeadas, fondo blanco y sombra suave sobre el degradado
+- Botones con esquinas redondeadas, color morado sólido para acción principal
+- Avatares circulares para representar usuarios/estudiantes
+- Iconos junto a textos (persona, sobre, teléfono, etc.)
+- Tipografía: títulos en negrita, subtítulos en gris/morado claro
+
+PANTALLAS A REDISEÑAR
+
+1. HomeScreen (pantalla de bienvenida)
+- Fondo con degradado morado
+- Texto "Bienvenido, [nombre]" en blanco, grande y en negrita
+- Subtítulo "¿Qué deseas gestionar hoy?"
+- Dos tarjetas blancas apiladas, cada una con ícono a la izquierda + título + descripción corta:
+  - "Directorio de Alumnos" (ícono de personas) → navega a List
+  - "Mi Perfil Académico" (ícono de persona) → navega a Profile
+- Al final, un texto/botón "Cerrar Sesión Segura" con ícono, en color rojo suave
+
+2. ListScreen (Directorio de Alumnos)
+- TopAppBar con flecha de volver y título "Directorio de Alumnos"
+- Fondo claro (blanco o lavanda muy suave)
+- Lista de tarjetas, cada una con: avatar circular (foto o iniciales), nombre en negrita, carrera/rol en gris debajo, flecha ">" a la derecha
+- Cada tarjeta es clickeable y navega a Detail con el id del elemento
+
+3. DetailScreen (Expediente Académico)
+- TopAppBar con flecha de volver y título "Expediente Académico"
+- Header con fondo degradado morado, avatar circular grande centrado, nombre y carrera debajo en blanco
+- Debajo del header, sobre fondo blanco: filas con ícono + etiqueta + valor (ID Estudiante, Correo, Carrera)
+- Sección "Biografía" con un texto descriptivo
+
+4. ProfileScreen (Configuración de Perfil)
+- TopAppBar con flecha de volver y título "Configuración de Perfil"
+- Header con fondo degradado morado, avatar circular grande centrado, nombre completo en blanco debajo
+- Sección "Información Personal": filas con ícono + etiqueta + valor (Nombre completo, Correo, Teléfono)
+- Sección "Académico": filas con ícono + etiqueta + valor (Carrera, Ciclo actual)
+- Botón inferior "Cerrar Sesión" en rojo/rosado suave
+
+RESTRICCIONES IMPORTANTES
+- Mantén los nombres de las funciones @Composable existentes (HomeScreen, ListScreen, DetailScreen, ProfileScreen) y sus parámetros (navController, itemId)
+- No elimines ni renombres las rutas de Screen.kt
+- Usa componentes de Material3 (Card, Scaffold, TopAppBar, etc.)
+- El código debe compilar sin errores con las dependencias que ya tengo (navigation-compose, material-icons-core)
