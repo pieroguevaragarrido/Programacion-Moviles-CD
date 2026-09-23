@@ -33,3 +33,10 @@ RESTRICCIONES
 - No toques Screen.kt, AppNavigation.kt ni las demas pantallas
 - Usa componentes de Material3 (AlertDialog, TextButton, IconButton)
 - El codigo debe compilar sin errores nuevos
+
+Correcciones que hice:
+La IA generó correctamente el AlertDialog y la eliminación de la
+cita, pero no incluía ningún feedback visual tras la acción. Agregué
+manualmente un SnackbarHostState para mostrar "Cita cancelada
+correctamente" y amplié el texto del diálogo para incluir fecha y
+hora.
