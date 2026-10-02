@@ -7,6 +7,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -51,6 +57,20 @@ fun AppNavegacion() {
             composable(Rutas.PEDIDOS) { PedidosScreen() }
             composable(Rutas.FAVORITOS) { FavoritosScreen() }
             composable(Rutas.PERFIL) { PerfilScreen() }
+        }
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val scope = rememberCoroutineScope()
+
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Text("Inicio", modifier = Modifier.padding(16.dp))
+                    Text("Mis pedidos", modifier = Modifier.padding(16.dp))
+                }
+            }
+        ) {
+            // Aquí va tu Scaffold o NavHost actual.
         }
     }
 }
