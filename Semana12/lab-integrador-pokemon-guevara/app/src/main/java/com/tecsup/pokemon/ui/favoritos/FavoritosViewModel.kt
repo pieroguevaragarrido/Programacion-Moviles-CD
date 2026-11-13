@@ -1,0 +1,40 @@
+package com.tecsup.pokemon.ui.favoritos
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.tecsup.pokemon.AppContainer
+import com.tecsup.pokemon.data.repository.ItemRepository
+import com.tecsup.pokemon.domain.model.Item
+import com.tecsup.pokemon.ui.UiState
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class FavoritosViewModel(
+    private val repo: ItemRepository
+) : ViewModel() {
+
+    // Los favoritos salen de Room, así que se conservan al cerrar la app.
+    val estado: StateFlow<UiState<List<Item>>> = repo.favoritos
+        .map<List<Item>, UiState<List<Item>>> { UiState.Exito(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = UiState.Cargando
+        )
+
+    fun alternarFavorito(id: Int) {
+        viewModelScope.launch { repo.alternarFavorito(id) }
+    }
+
+    companion object {
+        fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
+            initializer { FavoritosViewModel(container.itemRepository) }
+        }
+    }
+}
