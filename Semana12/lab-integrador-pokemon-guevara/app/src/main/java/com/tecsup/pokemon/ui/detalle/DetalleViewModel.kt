@@ -28,18 +28,34 @@ class DetalleViewModel(
     private val _estado = MutableStateFlow<UiState<Item>>(UiState.Cargando)
     val estado: StateFlow<UiState<Item>> = _estado.asStateFlow()
 
+    private val _aviso = MutableStateFlow<String?>(null)
+    val aviso: StateFlow<String?> = _aviso.asStateFlow()
+
     init {
         cargar()
     }
 
-    /** Usa el segundo endpoint de la API: /pokemon/{nombre}. */
+    /** Usa el segundo endpoint de la API: /pokemon/{nombre}. Si falla, intenta mostrar datos básicos de Room. */
     fun cargar() {
         viewModelScope.launch {
             _estado.value = UiState.Cargando
-            _estado.value = repo.obtenerDetalle(id).fold(
-                onSuccess = { UiState.Exito(it) },
-                onFailure = { UiState.Error(mensajeDeError(it)) }
-            )
+            _aviso.value = null
+
+            repo.obtenerDetalle(id)
+                .onSuccess { item ->
+                    _aviso.value = null
+                    _estado.value = UiState.Exito(item)
+                }
+                .onFailure { error ->
+                    val guardado = repo.obtenerGuardado(id)
+                    if (guardado != null) {
+                        _aviso.value = "Sin conexión: mostrando datos básicos"
+                        _estado.value = UiState.Exito(guardado)
+                    } else {
+                        _aviso.value = null
+                        _estado.value = UiState.Error(mensajeDeError(error))
+                    }
+                }
         }
     }
 

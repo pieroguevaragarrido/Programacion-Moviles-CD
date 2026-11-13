@@ -57,6 +57,9 @@ fun LoginScreen(
     onIngreso: (Sesion) -> Unit
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val errorCorreo by viewModel.errorCorreo.collectAsStateWithLifecycle()
+    val errorClave by viewModel.errorClave.collectAsStateWithLifecycle()
+
     var correo by rememberSaveable { mutableStateOf("") }
     var clave by rememberSaveable { mutableStateOf("") }
     var verClave by rememberSaveable { mutableStateOf(false) }
@@ -68,6 +71,8 @@ fun LoginScreen(
     }
 
     val cargando = estado is UiState.Cargando
+    // El botón se deshabilita mientras los campos estén vacíos
+    val botonHabilitado = !cargando && correo.isNotBlank() && clave.isNotBlank()
 
     Box(
         modifier = Modifier
@@ -108,17 +113,28 @@ fun LoginScreen(
                 ) {
                     OutlinedTextField(
                         value = correo,
-                        onValueChange = { correo = it; viewModel.limpiarError() },
+                        onValueChange = {
+                            correo = it
+                            viewModel.limpiarErrores()
+                        },
                         label = { Text("Correo") },
                         leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         singleLine = true,
                         enabled = !cargando,
+                        isError = errorCorreo != null,
+                        supportingText = errorCorreo?.let { err ->
+                            { Text(err, color = MaterialTheme.colorScheme.error) }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     OutlinedTextField(
                         value = clave,
-                        onValueChange = { clave = it; viewModel.limpiarError() },
+                        onValueChange = {
+                            clave = it
+                            viewModel.limpiarErrores()
+                        },
                         label = { Text("Contraseña") },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
@@ -128,16 +144,19 @@ fun LoginScreen(
                         },
                         singleLine = true,
                         enabled = !cargando,
-                        visualTransformation = if (verClave) VisualTransformation.None
-                        else PasswordVisualTransformation(),
+                        isError = errorClave != null,
+                        supportingText = errorClave?.let { err ->
+                            { Text(err, color = MaterialTheme.colorScheme.error) }
+                        },
+                        visualTransformation = if (verClave) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    val error = estado
-                    if (error is UiState.Error) {
+                    val generalError = (estado as? UiState.Error)?.mensaje
+                    if (generalError != null && errorCorreo == null && errorClave == null) {
                         Text(
-                            error.mensaje,
+                            generalError,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -145,7 +164,7 @@ fun LoginScreen(
 
                     Button(
                         onClick = { viewModel.ingresar(correo, clave) },
-                        enabled = !cargando,
+                        enabled = botonHabilitado,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)

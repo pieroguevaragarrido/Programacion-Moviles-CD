@@ -59,6 +59,8 @@ class ItemRepositoryImpl(
         Result.failure(e)
     }
 
+    override suspend fun obtenerGuardado(id: Int): Item? = dao.porId(id)?.aModelo()
+
     override suspend fun alternarFavorito(id: Int) = dao.alternarFavorito(id)
 
     override suspend fun cantidadGuardada(): Int = dao.contar()

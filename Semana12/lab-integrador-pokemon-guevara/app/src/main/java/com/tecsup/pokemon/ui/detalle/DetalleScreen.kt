@@ -42,6 +42,7 @@ import coil.compose.AsyncImage
 import com.tecsup.pokemon.domain.model.Estadistica
 import com.tecsup.pokemon.domain.model.Item
 import com.tecsup.pokemon.ui.UiState
+import com.tecsup.pokemon.ui.components.AvisoBanner
 import com.tecsup.pokemon.ui.components.Cargando
 import com.tecsup.pokemon.ui.components.ErrorView
 import com.tecsup.pokemon.ui.theme.colorDeTipo
@@ -55,6 +56,7 @@ fun DetalleScreen(
     onVolver: () -> Unit
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val aviso by viewModel.aviso.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -85,15 +87,19 @@ fun DetalleScreen(
             )
         }
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            when (val e = estado) {
-                is UiState.Cargando -> Cargando(texto = "Consultando la Pokédex...")
-                is UiState.Error -> ErrorView(mensaje = e.mensaje, onReintentar = viewModel::cargar)
-                is UiState.Exito -> ContenidoDetalle(e.datos)
+            aviso?.let { AvisoBanner(it) }
+
+            Box(modifier = Modifier.weight(1f)) {
+                when (val e = estado) {
+                    is UiState.Cargando -> Cargando(texto = "Consultando la Pokédex...")
+                    is UiState.Error -> ErrorView(mensaje = e.mensaje, onReintentar = viewModel::cargar)
+                    is UiState.Exito -> ContenidoDetalle(e.datos)
+                }
             }
         }
     }

@@ -25,11 +25,17 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -58,8 +64,27 @@ fun ListaScreen(
     val busqueda by viewModel.busqueda.collectAsStateWithLifecycle()
     val totalPokemon by viewModel.totalPokemon.collectAsStateWithLifecycle()
     val totalFavoritos by viewModel.totalFavoritos.collectAsStateWithLifecycle()
+    val mostrarSnackbar by viewModel.mostrarSnackbarReintentar.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Muestra un Snackbar con la opción "Reintentar" cuando falla la sincronización pero existen datos guardados
+    LaunchedEffect(mostrarSnackbar) {
+        if (mostrarSnackbar) {
+            val resultado = snackbarHostState.showSnackbar(
+                message = "Error al sincronizar con el servidor",
+                actionLabel = "Reintentar",
+                duration = SnackbarDuration.Short
+            )
+            if (resultado == SnackbarResult.ActionPerformed) {
+                viewModel.refrescar()
+            }
+            viewModel.ocultarSnackbar()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -83,7 +108,6 @@ fun ListaScreen(
                     IconButton(onClick = onFavoritos) {
                         Icon(Icons.Default.Favorite, contentDescription = "Favoritos")
                     }
-                    // Solo el administrador ve el acceso al panel (lo decide el rol de Firestore)
                     if (esAdmin) {
                         IconButton(onClick = onAdmin) {
                             Icon(Icons.Default.Settings, contentDescription = "Panel Admin")

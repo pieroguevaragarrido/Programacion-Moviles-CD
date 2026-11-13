@@ -58,6 +58,8 @@ class FakeItemRepository(
     override suspend fun obtenerDetalle(id: Int): Result<Item> =
         Result.failure(Exception("No implementado"))
 
+    override suspend fun obtenerGuardado(id: Int): Item? = itemsFlow.value.find { it.id == id }
+
     override suspend fun alternarFavorito(id: Int) {}
 
     override suspend fun cantidadGuardada(): Int = cantidadGuardadaVal
@@ -151,7 +153,7 @@ class ListaViewModelTest {
         assertEquals("No hay conexión a internet", (estadoActual as UiState.Error).mensaje)
     }
 
-    // 3. refrescar falla pero hay datos guardados: se muestra la lista y aviso no es null.
+    // 3. refrescar falla pero hay datos guardados: se muestra la lista, aviso no es null y se activa el snackbar.
     @Test
     fun refrescarFalla_conDatosGuardados_muestraListaYAvisoNoNull() = runTest {
         val listaItems = listOf(pokemonPikachu)
@@ -170,9 +172,10 @@ class ListaViewModelTest {
         assertTrue(estadoActual is UiState.Exito)
         assertEquals(listaItems, (estadoActual as UiState.Exito).datos)
 
-        // Verificamos que aviso contenga la advertencia de sin conexión
+        // Verificamos que aviso contenga la advertencia de sin conexión y que el snackbar esté activado
         assertNotNull(viewModel.aviso.value)
         assertEquals("Sin conexión: mostrando datos guardados", viewModel.aviso.value)
+        assertTrue(viewModel.mostrarSnackbarReintentar.value)
     }
 
     // 4. refrescar falla: el notificador NO recibe ninguna notificación.

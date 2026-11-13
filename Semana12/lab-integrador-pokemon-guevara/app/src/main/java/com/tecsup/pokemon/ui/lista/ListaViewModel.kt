@@ -41,6 +41,9 @@ class ListaViewModel(
     private val _sincronizando = MutableStateFlow(false)
     val sincronizando: StateFlow<Boolean> = _sincronizando.asStateFlow()
 
+    private val _mostrarSnackbarReintentar = MutableStateFlow(false)
+    val mostrarSnackbarReintentar: StateFlow<Boolean> = _mostrarSnackbarReintentar.asStateFlow()
+
     private var refrescoTerminado = false
 
     init {
@@ -92,16 +95,23 @@ class ListaViewModel(
                 .onSuccess { n ->
                     if (_estado.value is UiState.Cargando) _estado.value = UiState.Exito(emptyList())
                     _aviso.value = null
+                    _mostrarSnackbarReintentar.value = false
                     notificador.mostrar("Pokédex actualizada", "Se guardaron $n elementos")
                 }
                 .onFailure { e ->
                     if (repo.cantidadGuardada() == 0) {
                         _estado.value = UiState.Error(mensajeDeError(e))
+                        _mostrarSnackbarReintentar.value = false
                     } else {
                         _aviso.value = "Sin conexión: mostrando datos guardados"
+                        _mostrarSnackbarReintentar.value = true
                     }
                 }
         }
+    }
+
+    fun ocultarSnackbar() {
+        _mostrarSnackbarReintentar.value = false
     }
 
     fun alternarFavorito(id: Int) {

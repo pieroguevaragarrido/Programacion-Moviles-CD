@@ -10,6 +10,7 @@ interface ItemRepository {
 
     suspend fun refrescar(): Result<Int> // Retrofit -> Room; devuelve cuántos guardó
     suspend fun obtenerDetalle(id: Int): Result<Item>
+    suspend fun obtenerGuardado(id: Int): Item? // Consulta únicamente datos básicos de Room
     suspend fun alternarFavorito(id: Int)
     suspend fun cantidadGuardada(): Int
     suspend fun cantidadFavoritos(): Int
