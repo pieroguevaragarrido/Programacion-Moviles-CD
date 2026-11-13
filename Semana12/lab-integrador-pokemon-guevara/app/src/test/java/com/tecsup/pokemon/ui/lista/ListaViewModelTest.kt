@@ -89,11 +89,20 @@ class ListaViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val pokemonEjemplo = Item(
+    private val pokemonPikachu = Item(
         id = 25,
         titulo = "Pikachu",
         subtitulo = "#025",
-        imagenUrl = "https://example.com/pikachu.png"
+        imagenUrl = "https://example.com/pikachu.png",
+        esFavorito = true
+    )
+
+    private val pokemonCharmander = Item(
+        id = 4,
+        titulo = "Charmander",
+        subtitulo = "#004",
+        imagenUrl = "https://example.com/charmander.png",
+        esFavorito = false
     )
 
     // Pruebas unitarias solicitadas:
@@ -101,7 +110,7 @@ class ListaViewModelTest {
     // 1. refrescar con éxito: el estado termina en UiState.Exito con la lista y el notificador recibe "Se guardaron N elementos".
     @Test
     fun refrescarExitoso_actualizaEstadoAExitoYNotificaCantidad() = runTest {
-        val listaItems = listOf(pokemonEjemplo)
+        val listaItems = listOf(pokemonPikachu)
         val fakeRepo = FakeItemRepository(
             itemsFlow = MutableStateFlow(listaItems),
             resultadoRefrescar = Result.success(1),
@@ -145,7 +154,7 @@ class ListaViewModelTest {
     // 3. refrescar falla pero hay datos guardados: se muestra la lista y aviso no es null.
     @Test
     fun refrescarFalla_conDatosGuardados_muestraListaYAvisoNoNull() = runTest {
-        val listaItems = listOf(pokemonEjemplo)
+        val listaItems = listOf(pokemonPikachu)
         val fakeRepo = FakeItemRepository(
             itemsFlow = MutableStateFlow(listaItems),
             resultadoRefrescar = Result.failure(IOException("Sin red")),
@@ -182,5 +191,58 @@ class ListaViewModelTest {
         // Verificamos que el estado sea Error y la lista de notificaciones enviadas esté vacía tras un fallo
         assertTrue(viewModel.estado.value is UiState.Error)
         assertTrue(fakeNotificador.notificaciones.isEmpty())
+    }
+
+    // 5. búsqueda por nombre o número filtra correctamente los Pokémon.
+    @Test
+    fun busqueda_filtraPorNombreONumeroCorrectamente() = runTest {
+        val listaItems = listOf(pokemonPikachu, pokemonCharmander)
+        val fakeRepo = FakeItemRepository(
+            itemsFlow = MutableStateFlow(listaItems),
+            resultadoRefrescar = Result.success(2),
+            cantidadGuardadaVal = 2
+        )
+        val fakeNotificador = FakeNotificador()
+
+        val viewModel = ListaViewModel(fakeRepo, fakeNotificador)
+        advanceUntilIdle()
+
+        // Buscar por nombre (sensible a minúsculas/mayúsculas)
+        viewModel.onBusquedaCambio("pika")
+        advanceUntilIdle()
+        var estado = viewModel.estado.value as UiState.Exito
+        assertEquals(1, estado.datos.size)
+        assertEquals("Pikachu", estado.datos[0].titulo)
+
+        // Buscar por número (#004)
+        viewModel.onBusquedaCambio("#004")
+        advanceUntilIdle()
+        estado = viewModel.estado.value as UiState.Exito
+        assertEquals(1, estado.datos.size)
+        assertEquals("Charmander", estado.datos[0].titulo)
+
+        // Buscar término que no coincide
+        viewModel.onBusquedaCambio("Mewtwo")
+        advanceUntilIdle()
+        estado = viewModel.estado.value as UiState.Exito
+        assertTrue(estado.datos.isEmpty())
+    }
+
+    // 6. contadores de total de Pokémon y favoritos se actualizan correctamente.
+    @Test
+    fun contadores_reflejanTotalYFavoritos() = runTest {
+        val listaItems = listOf(pokemonPikachu, pokemonCharmander)
+        val fakeRepo = FakeItemRepository(
+            itemsFlow = MutableStateFlow(listaItems),
+            resultadoRefrescar = Result.success(2),
+            cantidadGuardadaVal = 2
+        )
+        val fakeNotificador = FakeNotificador()
+
+        val viewModel = ListaViewModel(fakeRepo, fakeNotificador)
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.totalPokemon.value)
+        assertEquals(1, viewModel.totalFavoritos.value)
     }
 }

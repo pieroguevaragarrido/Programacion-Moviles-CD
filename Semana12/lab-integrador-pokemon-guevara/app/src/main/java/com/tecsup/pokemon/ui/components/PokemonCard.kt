@@ -1,5 +1,8 @@
 package com.tecsup.pokemon.ui.components
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +21,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -72,6 +77,17 @@ fun PokemonCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+
+            // Animación de escala para el botón e ícono del corazón
+            val escalaCorazon by animateFloatAsState(
+                targetValue = if (item.esFavorito) 1.25f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "escalaCorazon"
+            )
+
             IconButton(
                 onClick = onFavorito,
                 modifier = Modifier.align(Alignment.TopEnd)
@@ -79,7 +95,11 @@ fun PokemonCard(
                 Icon(
                     imageVector = if (item.esFavorito) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                     contentDescription = if (item.esFavorito) "Quitar de favoritos" else "Marcar como favorito",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = escalaCorazon
+                        scaleY = escalaCorazon
+                    }
                 )
             }
         }
