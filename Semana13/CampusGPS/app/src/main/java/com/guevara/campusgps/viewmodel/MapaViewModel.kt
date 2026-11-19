@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.guevara.campusgps.model.Posicion
+import com.guevara.campusgps.util.distanciaMetros
 
 class MapaViewModel(
     private val ubicacionRepo: UbicacionRepository,
@@ -30,11 +32,17 @@ class MapaViewModel(
             ubicacionRepo.obtenerPosicion()
                 .onSuccess {
                     _estado.value = UbicacionUi.Lista(it)
-                    // TODO Paso 5: calcular la distancia a cada lugar y ordenar la lista
+                    actualizarDistancias(it)
                 }
                 .onFailure {
                     _estado.value = UbicacionUi.Error(it.message ?: "No se pudo obtener la ubicación")
                 }
         }
+    }
+    // Calcula la distancia de cada lugar y ordena de menor a mayor
+    private fun actualizarDistancias(pos: Posicion) {
+        _lugares.value = lugaresRepo.obtenerLugares()
+            .map { LugarConDistancia(it, distanciaMetros(pos, it)) }
+            .sortedBy { it.metros }
     }
 }
