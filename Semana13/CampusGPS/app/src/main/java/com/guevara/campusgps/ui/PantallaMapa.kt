@@ -29,6 +29,9 @@ import androidx.core.content.ContextCompat
 import com.guevara.campusgps.model.UbicacionUi
 import com.guevara.campusgps.viewmodel.MapaViewModel
 import java.util.Locale
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.OutlinedButton
+import com.guevara.campusgps.util.formatearDistancia
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,6 +39,7 @@ fun PantallaMapa(vm: MapaViewModel) {
     val estado by vm.estado.collectAsState()
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
+    val masCercano by vm.masCercano.collectAsState()
     val contexto = LocalContext.current
 
     // Solicitud del permiso en tiempo de ejecución
@@ -87,6 +91,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                 estado = estado,
                 lugares = lugares,
                 seleccionado = seleccionado,
+                masCercanoId = masCercano?.id,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -99,8 +104,24 @@ fun PantallaMapa(vm: MapaViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Button(onClick = { alPulsar() }) {
-                    Text("Obtener mi ubicación")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { alPulsar() },
+                        enabled = estado !is UbicacionUi.Buscando,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Obtener mi ubicación")
+                    }
+                    OutlinedButton(
+                        onClick = { masCercano?.let { vm.seleccionar(it.id) } },
+                        enabled = masCercano != null,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Ir al más cercano")
+                    }
                 }
 
                 when (val e = estado) {
@@ -113,6 +134,16 @@ fun PantallaMapa(vm: MapaViewModel) {
                     )
                     is UbicacionUi.Error -> Text(e.mensaje)
                     UbicacionUi.Inicial -> Unit
+                }
+                // Texto: Más cercano: nombre (distancia)
+                val cercano = masCercano
+                val metrosCercano = lugares
+                    .firstOrNull { it.lugar.id == cercano?.id }?.metros
+                if (cercano != null && metrosCercano != null) {
+                    Text(
+                        text = "Más cercano: ${cercano.nombre} (${formatearDistancia(metrosCercano)})",
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 ListaLugares(

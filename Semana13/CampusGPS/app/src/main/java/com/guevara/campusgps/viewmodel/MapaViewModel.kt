@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.guevara.campusgps.model.Posicion
 import com.guevara.campusgps.util.distanciaMetros
+import com.guevara.campusgps.model.Lugar
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class MapaViewModel(
     private val ubicacionRepo: UbicacionRepository,
@@ -27,6 +31,10 @@ class MapaViewModel(
     val lugares: StateFlow<List<LugarConDistancia>> = _lugares.asStateFlow()
     private val _seleccionado = MutableStateFlow<Int?>(null)
     val seleccionado: StateFlow<Int?> = _seleccionado.asStateFlow()
+    // El primero de la lista ordenada que ya tiene distancia calculada
+    val masCercano: StateFlow<Lugar?> = lugares
+        .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun buscar() {
         _estado.value = UbicacionUi.Buscando

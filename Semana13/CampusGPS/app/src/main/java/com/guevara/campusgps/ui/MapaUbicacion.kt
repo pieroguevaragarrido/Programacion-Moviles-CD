@@ -39,6 +39,7 @@ fun MapaUbicacion(
     estado: UbicacionUi,
     lugares: List<LugarConDistancia>,
     seleccionado: Int?,
+    masCercanoId: Int?,
     modifier: Modifier = Modifier
 ) {
     val contexto = LocalContext.current
@@ -97,7 +98,9 @@ fun MapaUbicacion(
         AndroidView(
             factory = { mapView },
             modifier = Modifier.fillMaxSize(),
-            update = { mv -> dibujarMarcadores(mv, contexto, estado, lugares, seleccionado) }
+            update = { mv ->
+                dibujarMarcadores(mv, contexto, estado, lugares, seleccionado, masCercanoId)
+            }
         )
         // Atribución obligatoria de OpenStreetMap
         Text(
@@ -122,24 +125,30 @@ private fun configurarOsmdroid(contexto: Context) {
     cfg.osmdroidTileCache = File(contexto.cacheDir, "osmdroid_tiles")
 }
 
-// Lugares en azul y mi posición en rojo; el seleccionado muestra su nombre
+// Lugares en azul, el más cercano en verde; mi posición en rojo
 private fun dibujarMarcadores(
     mv: MapView,
     contexto: Context,
     estado: UbicacionUi,
     lugares: List<LugarConDistancia>,
-    seleccionado: Int?
+    seleccionado: Int?,
+    masCercanoId: Int?
 ) {
     InfoWindow.closeAllInfoWindowsOn(mv)
     mv.overlays.clear()
 
     var elegido: Marker? = null
     lugares.forEach { item ->
+        val esCercano = item.lugar.id == masCercanoId
         val marcador = Marker(mv).apply {
             position = GeoPoint(item.lugar.latitud, item.lugar.longitud)
             title = item.lugar.nombre
             snippet = item.lugar.categoria
-            icon = circulo(contexto, AndroidColor.rgb(33, 150, 243), 22)
+            icon = circulo(
+                contexto,
+                if (esCercano) AndroidColor.rgb(46, 125, 50) else AndroidColor.rgb(33, 150, 243),
+                22
+            )
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
         }
         mv.overlays.add(marcador)
