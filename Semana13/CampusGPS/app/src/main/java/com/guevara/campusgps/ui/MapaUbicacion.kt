@@ -31,12 +31,14 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import java.io.File
 import com.guevara.campusgps.model.LugarConDistancia
+import org.osmdroid.views.overlay.infowindow.InfoWindow
 
 // Solo dibuja lo que recibe: no consulta ningún Repository ni calcula distancias
 @Composable
 fun MapaUbicacion(
     estado: UbicacionUi,
     lugares: List<LugarConDistancia>,
+    seleccionado: Int?,
     modifier: Modifier = Modifier
 ) {
     val contexto = LocalContext.current
@@ -80,12 +82,22 @@ fun MapaUbicacion(
             )
         }
     }
+    // Al seleccionar un lugar, la cámara viaja hasta él (zoom 17)
+    LaunchedEffect(seleccionado) {
+        val destino = lugares.firstOrNull { it.lugar.id == seleccionado }?.lugar
+            ?: return@LaunchedEffect
+        mapView.controller.animateTo(
+            GeoPoint(destino.latitud, destino.longitud),
+            17.0,
+            800L
+        )
+    }
 
     Box(modifier = modifier) {
         AndroidView(
             factory = { mapView },
             modifier = Modifier.fillMaxSize(),
-            update = { mv -> dibujarMarcadores(mv, contexto, estado, lugares) }
+            update = { mv -> dibujarMarcadores(mv, contexto, estado, lugares, seleccionado) }
         )
         // Atribución obligatoria de OpenStreetMap
         Text(
@@ -110,15 +122,18 @@ private fun configurarOsmdroid(contexto: Context) {
     cfg.osmdroidTileCache = File(contexto.cacheDir, "osmdroid_tiles")
 }
 
-// Lugares en azul y mi posición en rojo
+// Lugares en azul y mi posición en rojo; el seleccionado muestra su nombre
 private fun dibujarMarcadores(
     mv: MapView,
     contexto: Context,
     estado: UbicacionUi,
-    lugares: List<LugarConDistancia>
+    lugares: List<LugarConDistancia>,
+    seleccionado: Int?
 ) {
+    InfoWindow.closeAllInfoWindowsOn(mv)
     mv.overlays.clear()
 
+    var elegido: Marker? = null
     lugares.forEach { item ->
         val marcador = Marker(mv).apply {
             position = GeoPoint(item.lugar.latitud, item.lugar.longitud)
@@ -128,6 +143,7 @@ private fun dibujarMarcadores(
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
         }
         mv.overlays.add(marcador)
+        if (item.lugar.id == seleccionado) elegido = marcador
     }
 
     if (estado is UbicacionUi.Lista) {
@@ -141,6 +157,9 @@ private fun dibujarMarcadores(
     }
 
     mv.invalidate()
+
+    // Al seleccionar desde la lista, se muestra el nombre del lugar
+    elegido?.let { m -> mv.post { m.showInfoWindow() } }
 }
 
 private fun circulo(contexto: Context, color: Int, dp: Int): Drawable {

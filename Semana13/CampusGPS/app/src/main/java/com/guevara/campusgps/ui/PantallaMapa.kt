@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,9 +35,10 @@ import java.util.Locale
 fun PantallaMapa(vm: MapaViewModel) {
     val estado by vm.estado.collectAsState()
     val lugares by vm.lugares.collectAsState()
+    val seleccionado by vm.seleccionado.collectAsState()
     val contexto = LocalContext.current
 
-    // Paso 2: solicitud del permiso en tiempo de ejecución
+    // Solicitud del permiso en tiempo de ejecución
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
@@ -81,10 +83,10 @@ fun PantallaMapa(vm: MapaViewModel) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Paso 3: el mapa ocupa el espacio libre
             MapaUbicacion(
                 estado = estado,
                 lugares = lugares,
+                seleccionado = seleccionado,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -93,13 +95,14 @@ fun PantallaMapa(vm: MapaViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Button(onClick = { alPulsar() }) {
                     Text("Obtener mi ubicación")
                 }
+
                 when (val e = estado) {
                     is UbicacionUi.Buscando -> Text("Buscando tu ubicación…")
                     is UbicacionUi.Lista -> Text(
@@ -111,6 +114,15 @@ fun PantallaMapa(vm: MapaViewModel) {
                     is UbicacionUi.Error -> Text(e.mensaje)
                     UbicacionUi.Inicial -> Unit
                 }
+
+                ListaLugares(
+                    lugares = lugares,
+                    seleccionado = seleccionado,
+                    onClick = { vm.seleccionar(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                )
             }
         }
     }
