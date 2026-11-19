@@ -13,9 +13,19 @@ data class Lugar(
 // metros = null mientras todavía no se conoce la ubicación del usuario
 data class LugarConDistancia(val lugar: Lugar, val metros: Float?)
 
+// Paso 8: tipos de error para dar una acción útil en cada caso
+enum class TipoError { SIN_PERMISO, GPS_APAGADO, SIN_PLAY_SERVICES, OTRO }
+
+// Se lanza cuando el GPS está apagado o no se puede determinar la ubicación
+class UbicacionNoDisponibleException :
+    Exception("Activa el GPS e intenta de nuevo")
+
 sealed interface UbicacionUi {
     data object Inicial : UbicacionUi
     data object Buscando : UbicacionUi
     data class Lista(val posicion: Posicion) : UbicacionUi
-    data class Error(val mensaje: String) : UbicacionUi
+    data class Error(
+        val mensaje: String,
+        val tipo: TipoError = TipoError.OTRO
+    ) : UbicacionUi
 }

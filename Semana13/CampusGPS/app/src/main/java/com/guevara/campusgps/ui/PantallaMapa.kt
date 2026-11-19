@@ -1,11 +1,15 @@
 package com.guevara.campusgps.ui
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -27,11 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.guevara.campusgps.model.UbicacionUi
+import com.guevara.campusgps.util.formatearDistancia
 import com.guevara.campusgps.viewmodel.MapaViewModel
 import java.util.Locale
-import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.OutlinedButton
-import com.guevara.campusgps.util.formatearDistancia
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,23 +43,23 @@ fun PantallaMapa(vm: MapaViewModel) {
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
     val masCercano by vm.masCercano.collectAsState()
+
     val contexto = LocalContext.current
 
-    // Solicitud del permiso en tiempo de ejecución
+    // Paso 2: solicitud del permiso en tiempo de ejecución
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
-        // Si el usuario aceptó alguno de los dos permisos, buscamos la ubicación
-        if (resultado.values.any { it }) vm.buscar()
+        if (resultado.values.any { it }) vm.buscar() else vm.permisoDenegado()
     }
 
     fun tienePermiso(): Boolean =
         ContextCompat.checkSelfPermission(
             contexto, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    contexto, Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                contexto, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
 
     fun alPulsar() {
         if (tienePermiso()) {
@@ -69,6 +72,14 @@ fun PantallaMapa(vm: MapaViewModel) {
                 )
             )
         }
+    }
+
+    // Paso 8: lleva al usuario a los ajustes de la app
+    fun abrirAjustes() {
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.fromParts("package", contexto.packageName, null)
+        }
+        contexto.startActivity(intent)
     }
 
     Scaffold(
@@ -87,6 +98,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // El mapa ocupa el espacio libre
             MapaUbicacion(
                 estado = estado,
                 lugares = lugares,
@@ -124,6 +136,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                     }
                 }
 
+                // Estado actual: latitud/longitud o aviso de búsqueda
                 when (val e = estado) {
                     is UbicacionUi.Buscando -> Text("Buscando tu ubicación…")
                     is UbicacionUi.Lista -> Text(
@@ -132,9 +145,14 @@ fun PantallaMapa(vm: MapaViewModel) {
                             e.posicion.latitud, e.posicion.longitud
                         )
                     )
-                    is UbicacionUi.Error -> Text(e.mensaje)
+                    is UbicacionUi.Error -> MensajeError(
+                        error = e,
+                        onAbrirAjustes = { abrirAjustes() },
+                        onReintentar = { alPulsar() }
+                    )
                     UbicacionUi.Inicial -> Unit
                 }
+
                 // Texto: Más cercano: nombre (distancia)
                 val cercano = masCercano
                 val metrosCercano = lugares
@@ -149,6 +167,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                 ListaLugares(
                     lugares = lugares,
                     seleccionado = seleccionado,
+                    masCercanoId = masCercano?.id,
                     onClick = { vm.seleccionar(it) },
                     modifier = Modifier
                         .fillMaxWidth()
