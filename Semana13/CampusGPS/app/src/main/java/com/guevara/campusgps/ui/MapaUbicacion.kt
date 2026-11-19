@@ -30,11 +30,13 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import java.io.File
+import com.guevara.campusgps.model.LugarConDistancia
 
 // Solo dibuja lo que recibe: no consulta ningún Repository ni calcula distancias
 @Composable
 fun MapaUbicacion(
     estado: UbicacionUi,
+    lugares: List<LugarConDistancia>,
     modifier: Modifier = Modifier
 ) {
     val contexto = LocalContext.current
@@ -83,7 +85,7 @@ fun MapaUbicacion(
         AndroidView(
             factory = { mapView },
             modifier = Modifier.fillMaxSize(),
-            update = { mv -> dibujarMarcadores(mv, contexto, estado) }
+            update = { mv -> dibujarMarcadores(mv, contexto, estado, lugares) }
         )
         // Atribución obligatoria de OpenStreetMap
         Text(
@@ -108,9 +110,25 @@ private fun configurarOsmdroid(contexto: Context) {
     cfg.osmdroidTileCache = File(contexto.cacheDir, "osmdroid_tiles")
 }
 
-// Marcador propio en rojo, solo si ya hay ubicación
-private fun dibujarMarcadores(mv: MapView, contexto: Context, estado: UbicacionUi) {
+// Lugares en azul y mi posición en rojo
+private fun dibujarMarcadores(
+    mv: MapView,
+    contexto: Context,
+    estado: UbicacionUi,
+    lugares: List<LugarConDistancia>
+) {
     mv.overlays.clear()
+
+    lugares.forEach { item ->
+        val marcador = Marker(mv).apply {
+            position = GeoPoint(item.lugar.latitud, item.lugar.longitud)
+            title = item.lugar.nombre
+            snippet = item.lugar.categoria
+            icon = circulo(contexto, AndroidColor.rgb(33, 150, 243), 22)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+        }
+        mv.overlays.add(marcador)
+    }
 
     if (estado is UbicacionUi.Lista) {
         val yo = Marker(mv).apply {

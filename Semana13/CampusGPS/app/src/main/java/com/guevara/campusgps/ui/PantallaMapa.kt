@@ -33,6 +33,7 @@ import java.util.Locale
 @Composable
 fun PantallaMapa(vm: MapaViewModel) {
     val estado by vm.estado.collectAsState()
+    val lugares by vm.lugares.collectAsState()
     val contexto = LocalContext.current
 
     // Paso 2: solicitud del permiso en tiempo de ejecución
@@ -83,6 +84,7 @@ fun PantallaMapa(vm: MapaViewModel) {
             // Paso 3: el mapa ocupa el espacio libre
             MapaUbicacion(
                 estado = estado,
+                lugares = lugares,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
