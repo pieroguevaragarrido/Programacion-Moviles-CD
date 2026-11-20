@@ -99,10 +99,22 @@ fun PantallaTareas(vm: TareasViewModel) {
 private fun TarjetaProgreso(vm: TareasViewModel) {
     val mensaje by vm.mensaje.collectAsState()
     val progreso by vm.progreso.collectAsState()
+    val corriendo by vm.corriendo.collectAsState()
 
     TarjetaBase("Tarea con progreso") {
-        Button(onClick = { vm.tareaLarga() }) {
-            Text("Iniciar")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { vm.tareaLarga() },
+                enabled = !corriendo
+            ) {
+                Text("Iniciar")
+            }
+            OutlinedButton(
+                onClick = { vm.cancelar() },
+                enabled = corriendo
+            ) {
+                Text("Cancelar")
+            }
         }
         LinearProgressIndicator(
             progress = { progreso },
