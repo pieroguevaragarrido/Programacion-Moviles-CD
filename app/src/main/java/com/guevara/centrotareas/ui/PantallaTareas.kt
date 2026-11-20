@@ -97,9 +97,13 @@ fun PantallaTareas(vm: TareasViewModel) {
 
 @Composable
 private fun TarjetaProgreso(vm: TareasViewModel) {
+    val mensaje by vm.mensaje.collectAsState()
+
     TarjetaBase("Tarea con progreso") {
-        // TODO Pasos 1 a 4
-        Text("Pendiente")
+        Button(onClick = { vm.tareaLargaMala() }) {
+            Text("Tarea larga (MAL)")
+        }
+        Text(mensaje)
     }
 }
 
