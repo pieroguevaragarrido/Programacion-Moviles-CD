@@ -1,5 +1,6 @@
 package com.guevara.centrotareas.data
 
+import android.util.Log
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -11,10 +12,12 @@ import kotlinx.coroutines.withContext
 
 class TareasRepositoryLocal : TareasRepository {
 
+    // flowOn hace que el bloque corra en Default aunque se recoja desde el hilo principal
     override fun progresoTarea(): Flow<Float> = flow {
-        for (i in 1..100) {
+        Log.d("HILO", "Dentro: ${Thread.currentThread().name}")
+        for (paso in 1..100) {
             delay(40)
-            emit(i / 100f)
+            emit(paso / 100f)
         }
     }.flowOn(Dispatchers.Default)
 
@@ -29,11 +32,11 @@ class TareasRepositoryLocal : TareasRepository {
         return listOf("Pedido 101", "Pedido 102", "Pedido 103")
     }
 
-    // Cálculo pesado: usa el procesador, por eso va en Dispatchers.Default
+    // Trabajo de CPU: va en Default y revisa la cancelación en cada vuelta
     override suspend fun contarPrimos(hasta: Int): Int = withContext(Dispatchers.Default) {
         var cantidad = 0
         for (n in 2..hasta) {
-            ensureActive() // permite cancelar a mitad del cálculo
+            ensureActive()
             if (esPrimo(n)) cantidad++
         }
         cantidad
@@ -41,7 +44,6 @@ class TareasRepositoryLocal : TareasRepository {
 
     private fun esPrimo(n: Int): Boolean {
         var d = 2
-        // d.toLong() * d evita el desborde de Int
         while (d.toLong() * d <= n) {
             if (n % d == 0) return false
             d++

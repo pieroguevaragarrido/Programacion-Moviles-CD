@@ -1,9 +1,11 @@
 package com.guevara.centrotareas.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.guevara.centrotareas.data.TareasRepository
 import com.guevara.centrotareas.model.CargaUi
+import com.guevara.centrotareas.model.Modo
 import com.guevara.centrotareas.model.PrimosUi
 import com.guevara.centrotareas.model.RegistroTiempo
 import kotlinx.coroutines.CancellationException
@@ -17,35 +19,34 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
-private const val TIEMPO_MAXIMO_MS = 4000L
+private const val MAX_REGISTROS = 10
 
 class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
 
-    // ----- Tarea con progreso (pasos 1 a 4)
+    // ----- Tarea con progreso
     private val _mensaje = MutableStateFlow("Listo")
     val mensaje: StateFlow<String> = _mensaje.asStateFlow()
 
     private val _progreso = MutableStateFlow(0f)
     val progreso: StateFlow<Float> = _progreso.asStateFlow()
 
-    // Paso 4: Job para poder cancelar, y bandera "corriendo" para evitar doble inicio
     private var trabajo: Job? = null
     private val _corriendo = MutableStateFlow(false)
     val corriendo: StateFlow<Boolean> = _corriendo.asStateFlow()
 
     fun tareaLarga() {
-        if (_corriendo.value) return // ya hay una tarea en marcha
+        if (_corriendo.value) return
         _corriendo.value = true
         trabajo = viewModelScope.launch {
             try {
                 _progreso.value = 0f
                 _mensaje.value = "Trabajando..."
-                repo.progresoTarea().collect { valor ->
-                    _progreso.value = valor
-                }
+                Log.d("HILO", "Antes: ${Thread.currentThread().name}")
+                // el Repository emite el avance; aquí solo lo guardamos en el estado
+                repo.progresoTarea().collect { _progreso.value = it }
+                Log.d("HILO", "Despues: ${Thread.currentThread().name}")
                 _mensaje.value = "Terminó"
             } finally {
-                // Se ejecuta si termina bien o si la cancelan
                 _corriendo.value = false
             }
         }
@@ -57,7 +58,7 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         _mensaje.value = "Cancelado"
     }
 
-    // ----- Contar primos (paso 5)
+    // ----- Contar primos
     private val _primos = MutableStateFlow<PrimosUi>(PrimosUi.Inicial)
     val primos: StateFlow<PrimosUi> = _primos.asStateFlow()
 
@@ -70,11 +71,10 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
             val inicio = System.currentTimeMillis()
             try {
                 val cantidad = repo.contarPrimos(hasta)
-                val ms = System.currentTimeMillis() - inicio
-                _primos.value = PrimosUi.Listo(cantidad, ms)
+                _primos.value = PrimosUi.Listo(cantidad, System.currentTimeMillis() - inicio)
             } catch (e: CancellationException) {
                 _primos.value = PrimosUi.Cancelado
-                throw e // la cancelación siempre se vuelve a lanzar
+                throw e
             }
         }
     }
@@ -83,68 +83,64 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
         trabajoPrimos?.cancel()
     }
 
-    // ----- Dos cargas (pasos 6 y 7)
+    // ----- Dos cargas
     private val _carga = MutableStateFlow<CargaUi>(CargaUi.Inicial)
     val carga: StateFlow<CargaUi> = _carga.asStateFlow()
 
-    private val _historial = MutableStateFlow<List<RegistroTiempo>>(emptyList())
-    val historial: StateFlow<List<RegistroTiempo>> = _historial.asStateFlow()
-
-    // Paso 7: interruptor para simular un fallo de red
     private val _simularError = MutableStateFlow(false)
     val simularError: StateFlow<Boolean> = _simularError.asStateFlow()
+
+    // Tiempo máximo que se espera una carga (se cambia desde la tarjeta)
+    private val _limiteSegundos = MutableStateFlow(6)
+    val limiteSegundos: StateFlow<Int> = _limiteSegundos.asStateFlow()
+
+    private val _historial = MutableStateFlow<List<RegistroTiempo>>(emptyList())
+    val historial: StateFlow<List<RegistroTiempo>> = _historial.asStateFlow()
 
     fun cambiarSimularError(valor: Boolean) {
         _simularError.value = valor
     }
 
-    // Una llamada espera a la otra (≈ 5 s)
-    fun cargarUnaPorUna() {
-        if (_carga.value is CargaUi.Cargando) return
-        viewModelScope.launch {
-            _carga.value = CargaUi.Cargando
-            val inicio = System.currentTimeMillis()
-            try {
-                val (perfil, pedidos) = withTimeout(TIEMPO_MAXIMO_MS) {
-                    val perfil = repo.cargarPerfil()
-                    val pedidos = repo.cargarPedidos(_simularError.value)
-                    Pair(perfil, pedidos)
-                }
-                val ms = System.currentTimeMillis() - inicio
-                _carga.value = CargaUi.Exito("Una por una", perfil, pedidos.size, ms)
-                _historial.value = (listOf(RegistroTiempo("Una por una", ms)) + _historial.value).take(10)
-            } catch (e: TimeoutCancellationException) {
-                _carga.value = CargaUi.Error("Tardó demasiado")
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e // primero se deja pasar la cancelación
-                _carga.value = CargaUi.Error("No se pudo cargar: " + e.message)
-            }
+    fun cambiarLimite(segundos: Int) {
+        _limiteSegundos.value = segundos
+    }
+
+    fun cargarUnaPorUna() = lanzarCarga(Modo.UNA_POR_UNA) {
+        val perfil = repo.cargarPerfil()
+        val pedidos = repo.cargarPedidos(_simularError.value)
+        perfil to pedidos
+    }
+
+    fun cargarALaVez() = lanzarCarga(Modo.A_LA_VEZ) {
+        coroutineScope {
+            val perfil = async { repo.cargarPerfil() }
+            val pedidos = async { repo.cargarPedidos(_simularError.value) }
+            perfil.await() to pedidos.await()
         }
     }
 
-    // Las dos llamadas arrancan juntas con async (≈ 3 s)
-    fun cargarALaVez() {
+    // Lógica común de las dos cargas: estado, tiempo máximo y errores
+    private fun lanzarCarga(modo: String, tarea: suspend () -> Pair<String, List<String>>) {
         if (_carga.value is CargaUi.Cargando) return
         viewModelScope.launch {
             _carga.value = CargaUi.Cargando
             val inicio = System.currentTimeMillis()
             try {
-                val (perfil, pedidos) = withTimeout(TIEMPO_MAXIMO_MS) {
-                    coroutineScope {
-                        val a = async { repo.cargarPerfil() }
-                        val b = async { repo.cargarPedidos(_simularError.value) }
-                        Pair(a.await(), b.await())
-                    }
-                }
+                val (perfil, pedidos) = withTimeout(_limiteSegundos.value * 1000L) { tarea() }
                 val ms = System.currentTimeMillis() - inicio
-                _carga.value = CargaUi.Exito("A la vez", perfil, pedidos.size, ms)
-                _historial.value = (listOf(RegistroTiempo("A la vez", ms)) + _historial.value).take(10)
+                _carga.value = CargaUi.Exito(modo, perfil, pedidos.size, ms)
+                registrar(modo, ms)
             } catch (e: TimeoutCancellationException) {
+                // va antes del catch general: el timeout también es una CancellationException
                 _carga.value = CargaUi.Error("Tardó demasiado")
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _carga.value = CargaUi.Error("No se pudo cargar: " + e.message)
             }
         }
+    }
+
+    private fun registrar(modo: String, ms: Long) {
+        _historial.value = (listOf(RegistroTiempo(modo, ms)) + _historial.value).take(MAX_REGISTROS)
     }
 }

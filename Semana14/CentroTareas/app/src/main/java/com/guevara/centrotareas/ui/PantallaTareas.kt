@@ -21,22 +21,24 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,8 +47,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guevara.centrotareas.model.CargaUi
+import com.guevara.centrotareas.model.Modo
 import com.guevara.centrotareas.model.PrimosUi
+import com.guevara.centrotareas.model.RegistroTiempo
+import com.guevara.centrotareas.model.promedioDe
 import com.guevara.centrotareas.viewmodel.TareasViewModel
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,6 +187,7 @@ private fun TarjetaPrimos(vm: TareasViewModel) {
 private fun TarjetaCargas(vm: TareasViewModel) {
     val carga by vm.carga.collectAsState()
     val simularError by vm.simularError.collectAsState()
+    val limite by vm.limiteSegundos.collectAsState()
     val historial by vm.historial.collectAsState()
     val cargando = carga is CargaUi.Cargando
 
@@ -209,6 +216,14 @@ private fun TarjetaCargas(vm: TareasViewModel) {
             )
             Text("Simular error")
         }
+        Text("Tiempo máximo: $limite s")
+        Slider(
+            value = limite.toFloat(),
+            onValueChange = { vm.cambiarLimite(it.roundToInt()) },
+            valueRange = 1f..8f,
+            steps = 6,
+            enabled = !cargando
+        )
         when (val c = carga) {
             CargaUi.Inicial -> Unit
             CargaUi.Cargando -> CircularProgressIndicator()
@@ -220,72 +235,41 @@ private fun TarjetaCargas(vm: TareasViewModel) {
                 onReintentar = { vm.cargarALaVez() }
             )
         }
-
         if (historial.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Historial de tiempos",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Modo",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "Tiempo (ms)",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                historial.forEach { registro ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = registro.modo,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "${registro.milisegundos} ms",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            val tiemposUnaPorUna = historial.filter { it.modo == "Una por una" }.map { it.milisegundos }
-            val tiemposALaVez = historial.filter { it.modo == "A la vez" }.map { it.milisegundos }
-
-            val promUnaPorUna = if (tiemposUnaPorUna.isNotEmpty()) "${tiemposUnaPorUna.average().toInt()} ms" else "-"
-            val promALaVez = if (tiemposALaVez.isNotEmpty()) "${tiemposALaVez.average().toInt()} ms" else "-"
-
-            Text(
-                text = "Promedio - Una por una: $promUnaPorUna | A la vez: $promALaVez",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            TablaTiempos(historial)
         }
     }
 }
 
 // ---------- Componentes auxiliares ----------
+
+@Composable
+private fun TablaTiempos(registros: List<RegistroTiempo>) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "Comparación de tiempos",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
+        )
+        FilaTabla("Modo", "Tiempo", resaltar = true)
+        HorizontalDivider()
+        registros.forEach { FilaTabla(it.modo, "${it.milisegundos} ms") }
+        HorizontalDivider()
+        listOf(Modo.UNA_POR_UNA, Modo.A_LA_VEZ).forEach { modo ->
+            val promedio = registros.promedioDe(modo)
+            FilaTabla("Promedio: $modo", promedio?.let { "$it ms" } ?: "—", resaltar = true)
+        }
+    }
+}
+
+@Composable
+private fun FilaTabla(modo: String, tiempo: String, resaltar: Boolean = false) {
+    val peso = if (resaltar) FontWeight.Bold else FontWeight.Normal
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(text = modo, fontWeight = peso, modifier = Modifier.weight(1f))
+        Text(text = tiempo, fontWeight = peso)
+    }
+}
 
 @Composable
 private fun TarjetaBase(
