@@ -127,9 +127,53 @@ private fun TarjetaProgreso(vm: TareasViewModel) {
 
 @Composable
 private fun TarjetaPrimos(vm: TareasViewModel) {
+    val estado by vm.primos.collectAsState()
+    // Valor por defecto: ajústalo si en tu emulador tarda menos de 2 s o más de 5 s
+    var texto by rememberSaveable { mutableStateOf("500000") }
+    val calculando = estado is PrimosUi.Calculando
+
     TarjetaBase("Contar números primos") {
-        // TODO Paso 5
-        Text("Pendiente")
+        OutlinedTextField(
+            value = texto,
+            onValueChange = { texto = it },
+            label = { Text("Contar primos hasta") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            enabled = !calculando,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = {
+                    // Se ignoran los textos no numéricos o menores que 2
+                    val n = texto.toIntOrNull()
+                    if (n != null && n >= 2) vm.contar(n)
+                },
+                enabled = !calculando
+            ) {
+                Text("Contar")
+            }
+            OutlinedButton(
+                onClick = { vm.cancelarPrimos() },
+                enabled = calculando
+            ) {
+                Text("Cancelar")
+            }
+        }
+        when (val e = estado) {
+            PrimosUi.Inicial -> Unit
+            PrimosUi.Calculando -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                Text("Calculando...")
+            }
+            is PrimosUi.Listo -> CuadroResultado(
+                "Primos encontrados: ${e.cantidad}\nTiempo: ${e.milisegundos} ms"
+            )
+            PrimosUi.Cancelado -> Text("Cancelado")
+        }
     }
 }
 
