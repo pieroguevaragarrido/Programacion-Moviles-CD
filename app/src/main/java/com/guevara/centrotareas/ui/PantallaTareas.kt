@@ -98,11 +98,17 @@ fun PantallaTareas(vm: TareasViewModel) {
 @Composable
 private fun TarjetaProgreso(vm: TareasViewModel) {
     val mensaje by vm.mensaje.collectAsState()
+    val progreso by vm.progreso.collectAsState()
 
     TarjetaBase("Tarea con progreso") {
         Button(onClick = { vm.tareaLarga() }) {
-            Text("Tarea larga")
+            Text("Iniciar")
         }
+        LinearProgressIndicator(
+            progress = { progreso },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text("${(progreso * 100).toInt()} %")
         Text(mensaje)
     }
 }
