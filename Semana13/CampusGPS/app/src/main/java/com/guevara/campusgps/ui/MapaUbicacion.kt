@@ -23,15 +23,16 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.guevara.campusgps.model.LugarConDistancia
 import com.guevara.campusgps.model.UbicacionUi
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import java.io.File
-import com.guevara.campusgps.model.LugarConDistancia
+import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.infowindow.InfoWindow
+import java.io.File
 
 // Solo dibuja lo que recibe: no consulta ningún Repository ni calcula distancias
 @Composable
@@ -40,7 +41,8 @@ fun MapaUbicacion(
     lugares: List<LugarConDistancia>,
     seleccionado: Int?,
     masCercanoId: Int?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    radio: Int? = null
 ) {
     val contexto = LocalContext.current
     val ciclo = LocalLifecycleOwner.current
@@ -99,7 +101,7 @@ fun MapaUbicacion(
             factory = { mapView },
             modifier = Modifier.fillMaxSize(),
             update = { mv ->
-                dibujarMarcadores(mv, contexto, estado, lugares, seleccionado, masCercanoId)
+                dibujarMarcadores(mv, contexto, estado, lugares, seleccionado, masCercanoId, radio)
             }
         )
         // Atribución obligatoria de OpenStreetMap
@@ -132,10 +134,22 @@ private fun dibujarMarcadores(
     estado: UbicacionUi,
     lugares: List<LugarConDistancia>,
     seleccionado: Int?,
-    masCercanoId: Int?
+    masCercanoId: Int?,
+    radio: Int?
 ) {
     InfoWindow.closeAllInfoWindowsOn(mv)
     mv.overlays.clear()
+
+    if (estado is UbicacionUi.Lista && radio != null) {
+        val centro = GeoPoint(estado.posicion.latitud, estado.posicion.longitud)
+        val circuloArea = Polygon(mv).apply {
+            points = Polygon.pointsAsCircle(centro, radio.toDouble())
+            fillPaint.color = AndroidColor.argb(45, 33, 150, 243)
+            outlinePaint.color = AndroidColor.rgb(33, 150, 243)
+            outlinePaint.strokeWidth = 3f
+        }
+        mv.overlays.add(circuloArea)
+    }
 
     var elegido: Marker? = null
     lugares.forEach { item ->

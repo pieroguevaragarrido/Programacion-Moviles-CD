@@ -37,6 +37,9 @@ class MapaViewModel(
     private val _categoria = MutableStateFlow<String?>(null)
     val categoria: StateFlow<String?> = _categoria.asStateFlow()
 
+    private val _radio = MutableStateFlow<Int?>(null)
+    val radio: StateFlow<Int?> = _radio.asStateFlow()
+
     private val _seleccionado = MutableStateFlow<Int?>(null)
     val seleccionado: StateFlow<Int?> = _seleccionado.asStateFlow()
 
@@ -53,6 +56,12 @@ class MapaViewModel(
         _todosLosLugares.value
     )
 
+    // Conjunto de IDs dentro del radio de cercanía seleccionado
+    val enRadioIds: StateFlow<Set<Int>> = combine(lugares, _radio) { lista, r ->
+        if (r == null) emptySet()
+        else lista.filter { it.metros != null && it.metros <= r }.map { it.lugar.id }.toSet()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
     // Paso 7: el primero de la lista ordenada que ya tiene distancia calculada
     val masCercano: StateFlow<Lugar?> = lugares
         .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
@@ -67,6 +76,10 @@ class MapaViewModel(
                 _seleccionado.value = null
             }
         }
+    }
+
+    fun cambiarRadio(nuevoRadio: Int?) {
+        _radio.value = nuevoRadio
     }
 
     fun buscar() {

@@ -52,9 +52,13 @@ fun PantallaMapa(vm: MapaViewModel) {
     val masCercano by vm.masCercano.collectAsState()
     val categoriaSeleccionada by vm.categoria.collectAsState()
     val siguiendo by vm.siguiendo.collectAsState()
+    val radioSeleccionado by vm.radio.collectAsState()
+    val enRadioIds by vm.enRadioIds.collectAsState()
 
     val categorias = listOf("Estudio", "Comida", "Eventos", "Servicios")
+    val radios = listOf(100, 200, 500)
     val contexto = LocalContext.current
+    val tieneUbicacion = estado is UbicacionUi.Lista
 
     var accionPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -133,6 +137,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                 lugares = lugares,
                 seleccionado = seleccionado,
                 masCercanoId = masCercano?.id,
+                radio = radioSeleccionado,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -164,6 +169,29 @@ fun PantallaMapa(vm: MapaViewModel) {
                                 vm.cambiarCategoria(if (categoriaSeleccionada == cat) null else cat)
                             },
                             label = { Text(cat) }
+                        )
+                    }
+                }
+
+                // Chips de radio de cercanía
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Radio:",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    radios.forEach { r ->
+                        FilterChip(
+                            selected = radioSeleccionado == r,
+                            onClick = {
+                                vm.cambiarRadio(if (radioSeleccionado == r) null else r)
+                            },
+                            enabled = tieneUbicacion,
+                            label = { Text("${r}m") }
                         )
                     }
                 }
@@ -231,6 +259,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                     lugares = lugares,
                     seleccionado = seleccionado,
                     masCercanoId = masCercano?.id,
+                    enRadioIds = enRadioIds,
                     onClick = { vm.seleccionar(it) },
                     modifier = Modifier
                         .fillMaxWidth()
