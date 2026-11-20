@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,15 +51,22 @@ fun PantallaMapa(vm: MapaViewModel) {
     val seleccionado by vm.seleccionado.collectAsState()
     val masCercano by vm.masCercano.collectAsState()
     val categoriaSeleccionada by vm.categoria.collectAsState()
+    val siguiendo by vm.siguiendo.collectAsState()
 
     val categorias = listOf("Estudio", "Comida", "Eventos", "Servicios")
     val contexto = LocalContext.current
+
+    var accionPendiente by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     // Paso 2: solicitud del permiso en tiempo de ejecución
     val lanzador = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { resultado ->
-        if (resultado.values.any { it }) vm.buscar() else vm.permisoDenegado()
+        if (resultado.values.any { it }) {
+            accionPendiente?.invoke()
+        } else {
+            vm.permisoDenegado()
+        }
     }
 
     fun tienePermiso(): Boolean =
@@ -66,16 +77,29 @@ fun PantallaMapa(vm: MapaViewModel) {
                 contexto, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
 
-    fun alPulsar() {
+    fun ejecutarConPermiso(accion: () -> Unit) {
         if (tienePermiso()) {
-            vm.buscar()
+            accion()
         } else {
+            accionPendiente = accion
             lanzador.launch(
                 arrayOf(
                     Manifest.permission.ACCESS_FINE_LOCATION,
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
+        }
+    }
+
+    fun alPulsar() {
+        ejecutarConPermiso { vm.buscar() }
+    }
+
+    fun alPulsarSeguimiento() {
+        if (siguiendo) {
+            vm.detenerSeguimiento()
+        } else {
+            ejecutarConPermiso { vm.iniciarSeguimiento() }
         }
     }
 
@@ -150,18 +174,29 @@ fun PantallaMapa(vm: MapaViewModel) {
                 ) {
                     Button(
                         onClick = { alPulsar() },
-                        enabled = estado !is UbicacionUi.Buscando,
+                        enabled = estado !is UbicacionUi.Buscando && !siguiendo,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Obtener mi ubicación")
                     }
-                    OutlinedButton(
-                        onClick = { masCercano?.let { vm.seleccionar(it.id) } },
-                        enabled = masCercano != null,
+                    Button(
+                        onClick = { alPulsarSeguimiento() },
+                        colors = if (siguiendo)
+                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        else
+                            ButtonDefaults.buttonColors(),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Ir al más cercano")
+                        Text(if (siguiendo) "Detener seguimiento" else "Iniciar seguimiento")
                     }
+                }
+
+                OutlinedButton(
+                    onClick = { masCercano?.let { vm.seleccionar(it.id) } },
+                    enabled = masCercano != null,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Ir al más cercano")
                 }
 
                 // Estado actual: latitud/longitud o aviso de búsqueda
