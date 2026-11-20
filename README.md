@@ -75,11 +75,11 @@ Las capturas están en la carpeta [`docs/capturas/`](docs/capturas/):
 
 | # | Captura | Archivo |
 | --- | --- | --- |
-| 1 | Pantalla congelada o tarea con progreso | `docs/capturas/01-progreso.png` |
-| 2 | Tarea cancelada | `docs/capturas/02-cancelada.png` |
-| 3 | Contar primos (resultado y tiempo) | `docs/capturas/03-primos.png` |
-| 4 | Una por una vs. a la vez | `docs/capturas/04-una-vs-a-la-vez.png` |
-| 5 | Error simulado con Reintentar | `docs/capturas/05-error.png` |
+| 1 | Pantalla congelada o tarea con progreso | `![01-progreso.png](docs/capturas/01-progreso.png)` |
+| 2 | Tarea cancelada | `![02-cancelada.png](docs/capturas/02-cancelada.png)` |
+| 3 | Contar primos (resultado y tiempo) | `![03-primos.png](docs/capturas/03-primos.png)` |
+| 4 | Una por una vs. a la vez | `![04-una-vs-a-la-vez.png](docs/capturas/04-una-vs-a-la-vez.png)` |
+| 5 | Error simulado con Reintentar | `![05-error.png](docs/capturas/05-error.png)` |
 
 ## Pruebas de aceptación (Paso 8)
 
@@ -97,30 +97,3 @@ Las capturas están en la carpeta [`docs/capturas/`](docs/capturas/):
 | Error simulado + **Reintentar** | Recuadro rojo; al desactivar el interruptor y reintentar, éxito | ☐ |
 | Rotar la pantalla durante la tarea | La tarea continúa y el progreso no se reinicia | ☐ |
 | Revisar el código | `git grep -nE "GlobalScope\|runBlocking\|Thread\.sleep" -- '*.kt'` no encuentra nada | ☐ |
-
-## Para pensar
-
-**1. ¿Por qué no se veía «Trabajando...» en el Paso 1?**
-Porque `Thread.sleep` bloqueaba el hilo principal, que es el que dibuja. El texto cambió en el estado,
-pero la pantalla no pudo redibujarse hasta que la función terminó; para entonces el mensaje ya era «Terminó».
-
-**2. ¿Qué diferencia hay entre `Thread.sleep` y `delay`?**
-`Thread.sleep` **bloquea el hilo** completo: nadie más puede usarlo mientras espera. `delay` **suspende
-solo la corrutina**: libera el hilo para otras tareas y lo retoma cuando termina el tiempo. Además,
-`delay` es cancelable: revisa la cancelación y lanza `CancellationException`.
-
-**3. ¿Por qué `Dispatchers.Default` para los primos y `Dispatchers.IO` para la red?**
-Los primos son trabajo de **CPU**: conviene un pool con tantos hilos como núcleos (`Default`), porque
-más hilos no lo harían más rápido. La red y el disco **esperan** casi todo el tiempo, así que `IO` usa
-un pool mucho más grande para que muchas esperas puedan convivir sin quedarse sin hilos.
-
-**4. ¿Qué pasaría con la corrutina si el usuario cierra la pantalla? ¿Qué papel cumple `viewModelScope`?**
-`viewModelScope` está ligado al ciclo de vida del ViewModel: cuando el usuario sale de la pantalla
-definitivamente y el ViewModel se destruye (`onCleared`), el scope se **cancela** y con él todas sus
-corrutinas, evitando fugas de memoria y trabajo inútil. En una **rotación** el ViewModel sobrevive,
-por eso la tarea continúa y el progreso no se reinicia.
-
-**5. ¿Por qué `async` tarda 3 s y no 5 s? ¿Qué pasa si una de las dos cargas falla?**
-Porque las dos llamadas arrancan **a la vez**: el tiempo total es el de la más lenta,
-`máximo(2 s, 3 s) ≈ 3 s`, y no la suma `2 s + 3 s`. Dentro de `coroutineScope`, si una falla se **cancela
-la otra** y la excepción sube al `try/catch`, que la convierte en el estado `Error` sin cerrar la app.
