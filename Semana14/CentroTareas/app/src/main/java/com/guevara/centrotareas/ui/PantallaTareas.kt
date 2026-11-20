@@ -31,12 +31,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -181,6 +181,7 @@ private fun TarjetaPrimos(vm: TareasViewModel) {
 private fun TarjetaCargas(vm: TareasViewModel) {
     val carga by vm.carga.collectAsState()
     val simularError by vm.simularError.collectAsState()
+    val historial by vm.historial.collectAsState()
     val cargando = carga is CargaUi.Cargando
 
     TarjetaBase("Dos cargas") {
@@ -217,6 +218,68 @@ private fun TarjetaCargas(vm: TareasViewModel) {
             is CargaUi.Error -> CuadroError(
                 mensaje = c.mensaje,
                 onReintentar = { vm.cargarALaVez() }
+            )
+        }
+
+        if (historial.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Historial de tiempos",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Modo",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "Tiempo (ms)",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                historial.forEach { registro ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = registro.modo,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "${registro.milisegundos} ms",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            val tiemposUnaPorUna = historial.filter { it.modo == "Una por una" }.map { it.milisegundos }
+            val tiemposALaVez = historial.filter { it.modo == "A la vez" }.map { it.milisegundos }
+
+            val promUnaPorUna = if (tiemposUnaPorUna.isNotEmpty()) "${tiemposUnaPorUna.average().toInt()} ms" else "-"
+            val promALaVez = if (tiemposALaVez.isNotEmpty()) "${tiemposALaVez.average().toInt()} ms" else "-"
+
+            Text(
+                text = "Promedio - Una por una: $promUnaPorUna | A la vez: $promALaVez",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }

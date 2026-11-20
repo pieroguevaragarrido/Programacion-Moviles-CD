@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.guevara.centrotareas.data.TareasRepository
 import com.guevara.centrotareas.model.CargaUi
 import com.guevara.centrotareas.model.PrimosUi
+import com.guevara.centrotareas.model.RegistroTiempo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -86,6 +87,9 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
     private val _carga = MutableStateFlow<CargaUi>(CargaUi.Inicial)
     val carga: StateFlow<CargaUi> = _carga.asStateFlow()
 
+    private val _historial = MutableStateFlow<List<RegistroTiempo>>(emptyList())
+    val historial: StateFlow<List<RegistroTiempo>> = _historial.asStateFlow()
+
     // Paso 7: interruptor para simular un fallo de red
     private val _simularError = MutableStateFlow(false)
     val simularError: StateFlow<Boolean> = _simularError.asStateFlow()
@@ -108,6 +112,7 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
                 }
                 val ms = System.currentTimeMillis() - inicio
                 _carga.value = CargaUi.Exito("Una por una", perfil, pedidos.size, ms)
+                _historial.value = (listOf(RegistroTiempo("Una por una", ms)) + _historial.value).take(10)
             } catch (e: TimeoutCancellationException) {
                 _carga.value = CargaUi.Error("Tardó demasiado")
             } catch (e: Exception) {
@@ -133,6 +138,7 @@ class TareasViewModel(private val repo: TareasRepository) : ViewModel() {
                 }
                 val ms = System.currentTimeMillis() - inicio
                 _carga.value = CargaUi.Exito("A la vez", perfil, pedidos.size, ms)
+                _historial.value = (listOf(RegistroTiempo("A la vez", ms)) + _historial.value).take(10)
             } catch (e: TimeoutCancellationException) {
                 _carga.value = CargaUi.Error("Tardó demasiado")
             } catch (e: Exception) {
