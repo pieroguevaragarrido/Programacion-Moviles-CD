@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -27,18 +28,39 @@ class MapaViewModel(
     private val _estado = MutableStateFlow<UbicacionUi>(UbicacionUi.Inicial)
     val estado: StateFlow<UbicacionUi> = _estado.asStateFlow()
 
-    private val _lugares = MutableStateFlow(
+    private val _todosLosLugares = MutableStateFlow(
         lugaresRepo.obtenerLugares().map { LugarConDistancia(it, null) }
     )
-    val lugares: StateFlow<List<LugarConDistancia>> = _lugares.asStateFlow()
+
+    private val _categoria = MutableStateFlow<String?>(null)
+    val categoria: StateFlow<String?> = _categoria.asStateFlow()
 
     private val _seleccionado = MutableStateFlow<Int?>(null)
     val seleccionado: StateFlow<Int?> = _seleccionado.asStateFlow()
+
+    val lugares: StateFlow<List<LugarConDistancia>> = combine(_todosLosLugares, _categoria) { lista, cat ->
+        if (cat == null) lista else lista.filter { it.lugar.categoria == cat }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        _todosLosLugares.value
+    )
 
     // Paso 7: el primero de la lista ordenada que ya tiene distancia calculada
     val masCercano: StateFlow<Lugar?> = lugares
         .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun cambiarCategoria(cat: String?) {
+        _categoria.value = cat
+        val sel = _seleccionado.value
+        if (sel != null && cat != null) {
+            val estaEnFiltro = _todosLosLugares.value.any { it.lugar.id == sel && it.lugar.categoria == cat }
+            if (!estaEnFiltro) {
+                _seleccionado.value = null
+            }
+        }
+    }
 
     fun buscar() {
         // Paso 8: primero se revisa Google Play Services (sin Context en el ViewModel)
@@ -76,7 +98,7 @@ class MapaViewModel(
 
     // Paso 5: calcula la distancia de cada lugar y ordena de menor a mayor
     private fun actualizarDistancias(pos: Posicion) {
-        _lugares.value = lugaresRepo.obtenerLugares()
+        _todosLosLugares.value = lugaresRepo.obtenerLugares()
             .map { LugarConDistancia(it, distanciaMetros(pos, it)) }
             .sortedBy { it.metros }
     }

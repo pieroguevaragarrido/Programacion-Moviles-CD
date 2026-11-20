@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -43,7 +46,9 @@ fun PantallaMapa(vm: MapaViewModel) {
     val lugares by vm.lugares.collectAsState()
     val seleccionado by vm.seleccionado.collectAsState()
     val masCercano by vm.masCercano.collectAsState()
+    val categoriaSeleccionada by vm.categoria.collectAsState()
 
+    val categorias = listOf("Estudio", "Comida", "Eventos", "Servicios")
     val contexto = LocalContext.current
 
     // Paso 2: solicitud del permiso en tiempo de ejecución
@@ -116,6 +121,29 @@ fun PantallaMapa(vm: MapaViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                // Chips de filtro por categoría
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = categoriaSeleccionada == null,
+                            onClick = { vm.cambiarCategoria(null) },
+                            label = { Text("Todos") }
+                        )
+                    }
+                    items(categorias) { cat ->
+                        FilterChip(
+                            selected = categoriaSeleccionada == cat,
+                            onClick = {
+                                vm.cambiarCategoria(if (categoriaSeleccionada == cat) null else cat)
+                            },
+                            label = { Text(cat) }
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
