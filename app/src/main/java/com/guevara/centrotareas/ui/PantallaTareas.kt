@@ -180,6 +180,7 @@ private fun TarjetaPrimos(vm: TareasViewModel) {
 @Composable
 private fun TarjetaCargas(vm: TareasViewModel) {
     val carga by vm.carga.collectAsState()
+    val simularError by vm.simularError.collectAsState()
     val cargando = carga is CargaUi.Cargando
 
     TarjetaBase("Dos cargas") {
@@ -197,13 +198,26 @@ private fun TarjetaCargas(vm: TareasViewModel) {
                 Text("A la vez")
             }
         }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Switch(
+                checked = simularError,
+                onCheckedChange = { vm.cambiarSimularError(it) }
+            )
+            Text("Simular error")
+        }
         when (val c = carga) {
             CargaUi.Inicial -> Unit
             CargaUi.Cargando -> CircularProgressIndicator()
             is CargaUi.Exito -> CuadroResultado(
                 "Modo: ${c.modo}\nPerfil: ${c.perfil}\nPedidos: ${c.pedidos}\nTiempo: ${c.milisegundos} ms"
             )
-            is CargaUi.Error -> Text(c.mensaje)
+            is CargaUi.Error -> CuadroError(
+                mensaje = c.mensaje,
+                onReintentar = { vm.cargarALaVez() }
+            )
         }
     }
 }
