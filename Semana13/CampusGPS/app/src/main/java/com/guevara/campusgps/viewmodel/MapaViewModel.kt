@@ -34,6 +34,10 @@ class MapaViewModel(
         lugaresRepo.obtenerLugares().map { LugarConDistancia(it, null) }
     )
 
+    // Opciones que ofrece la pantalla: la View no debe tener datos del dominio escritos a mano
+    val categorias: List<String> = lugaresRepo.obtenerLugares().map { it.categoria }.distinct()
+    val opcionesRadio: List<Int> = listOf(100, 200, 500)
+
     private val _categoria = MutableStateFlow<String?>(null)
     val categoria: StateFlow<String?> = _categoria.asStateFlow()
 
@@ -48,49 +52,45 @@ class MapaViewModel(
 
     private var trabajoSeguimiento: Job? = null
 
-    val lugares: StateFlow<List<LugarConDistancia>> = combine(_todosLosLugares, _categoria) { lista, cat ->
-        if (cat == null) lista else lista.filter { it.lugar.categoria == cat }
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        _todosLosLugares.value
-    )
+    // Lugares visibles: todos, o solo los de la categoría elegida
+    val lugares: StateFlow<List<LugarConDistancia>> =
+        combine(_todosLosLugares, _categoria) { lista, cat ->
+            if (cat == null) lista else lista.filter { it.lugar.categoria == cat }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), _todosLosLugares.value)
 
-    // Conjunto de IDs dentro del radio de cercanía seleccionado
+    // Ids de los lugares que quedan dentro del radio elegido
     val enRadioIds: StateFlow<Set<Int>> = combine(lugares, _radio) { lista, r ->
-        if (r == null) emptySet()
-        else lista.filter { it.metros != null && it.metros <= r }.map { it.lugar.id }.toSet()
+        if (r == null) {
+            emptySet()
+        } else {
+            lista.filter { (it.metros ?: Float.MAX_VALUE) <= r }.map { it.lugar.id }.toSet()
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    // Paso 7: el primero de la lista ordenada que ya tiene distancia calculada
+    // El primero de la lista ordenada que ya tiene distancia calculada
     val masCercano: StateFlow<Lugar?> = lugares
         .map { lista -> lista.firstOrNull { it.metros != null }?.lugar }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun cambiarCategoria(cat: String?) {
         _categoria.value = cat
-        val sel = _seleccionado.value
-        if (sel != null && cat != null) {
-            val estaEnFiltro = _todosLosLugares.value.any { it.lugar.id == sel && it.lugar.categoria == cat }
-            if (!estaEnFiltro) {
-                _seleccionado.value = null
-            }
-        }
+        // Si el lugar seleccionado queda oculto por el filtro, se deselecciona
+        val elegido = _seleccionado.value ?: return
+        val sigueVisible = cat == null ||
+                _todosLosLugares.value.any { it.lugar.id == elegido && it.lugar.categoria == cat }
+        if (!sigueVisible) _seleccionado.value = null
     }
 
     fun cambiarRadio(nuevoRadio: Int?) {
         _radio.value = nuevoRadio
     }
 
+    fun seleccionar(id: Int?) {
+        _seleccionado.value = id
+    }
+
     fun buscar() {
-        // Paso 8: primero se revisa Google Play Services (sin Context en el ViewModel)
-        if (!ubicacionRepo.playServicesDisponible()) {
-            _estado.value = UbicacionUi.Error(
-                "Este dispositivo no tiene Google Play Services",
-                TipoError.SIN_PLAY_SERVICES
-            )
-            return
-        }
+        if (!hayPlayServices()) return
         _estado.value = UbicacionUi.Buscando
         viewModelScope.launch {
             ubicacionRepo.obtenerPosicion()
@@ -105,13 +105,7 @@ class MapaViewModel(
     }
 
     fun iniciarSeguimiento() {
-        if (!ubicacionRepo.playServicesDisponible()) {
-            _estado.value = UbicacionUi.Error(
-                "Este dispositivo no tiene Google Play Services",
-                TipoError.SIN_PLAY_SERVICES
-            )
-            return
-        }
+        if (!hayPlayServices()) return
         detenerSeguimiento()
         _siguiendo.value = true
         _estado.value = UbicacionUi.Buscando
@@ -142,12 +136,17 @@ class MapaViewModel(
         )
     }
 
-    // Paso 6
-    fun seleccionar(id: Int?) {
-        _seleccionado.value = id
+    // Revisa Play Services y, si falta, publica el error; así buscar() y el seguimiento no repiten el bloque
+    private fun hayPlayServices(): Boolean {
+        if (ubicacionRepo.playServicesDisponible()) return true
+        _estado.value = UbicacionUi.Error(
+            "Este dispositivo no tiene Google Play Services",
+            TipoError.SIN_PLAY_SERVICES
+        )
+        return false
     }
 
-    // Paso 5: calcula la distancia de cada lugar y ordena de menor a mayor
+    // Calcula la distancia de cada lugar y ordena de menor a mayor
     private fun actualizarDistancias(pos: Posicion) {
         _todosLosLugares.value = lugaresRepo.obtenerLugares()
             .map { LugarConDistancia(it, distanciaMetros(pos, it)) }

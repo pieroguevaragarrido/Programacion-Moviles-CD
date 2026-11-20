@@ -67,3 +67,5 @@ LugaresRepository   ──► LugaresRepositoryLocal    (los 5 lugares fijos)
 | -- |---------------------------------------------------------|
 | ![04_lista_ordenada.png](docs/capturas/04_lista_ordenada.png) | ![05_mas_cercano.png](docs/capturas/05_mas_cercano.png) |
 
+prueba
+

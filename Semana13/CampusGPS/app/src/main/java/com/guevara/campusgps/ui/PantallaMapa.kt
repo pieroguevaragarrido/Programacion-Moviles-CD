@@ -55,8 +55,8 @@ fun PantallaMapa(vm: MapaViewModel) {
     val radioSeleccionado by vm.radio.collectAsState()
     val enRadioIds by vm.enRadioIds.collectAsState()
 
-    val categorias = listOf("Estudio", "Comida", "Eventos", "Servicios")
-    val radios = listOf(100, 200, 500)
+    val categorias = vm.categorias
+    val radios = vm.opcionesRadio
     val contexto = LocalContext.current
     val tieneUbicacion = estado is UbicacionUi.Lista
 
@@ -71,6 +71,7 @@ fun PantallaMapa(vm: MapaViewModel) {
         } else {
             vm.permisoDenegado()
         }
+        accionPendiente = null
     }
 
     fun tienePermiso(): Boolean =
@@ -263,7 +264,7 @@ fun PantallaMapa(vm: MapaViewModel) {
                     onClick = { vm.seleccionar(it) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(180.dp)
                 )
             }
         }

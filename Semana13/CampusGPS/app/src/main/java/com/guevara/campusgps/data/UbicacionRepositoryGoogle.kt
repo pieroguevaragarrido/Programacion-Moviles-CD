@@ -59,9 +59,8 @@ class UbicacionRepositoryGoogle(context: Context) : UbicacionRepository {
         }
         try {
             cliente.requestLocationUpdates(request, callback, Looper.getMainLooper())
-        } catch (e: SecurityException) {
-            close(e)
         } catch (e: Exception) {
+            // También cubre SecurityException si falta el permiso
             close(e)
         }
         awaitClose {
