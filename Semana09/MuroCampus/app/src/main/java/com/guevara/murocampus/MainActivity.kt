@@ -2,6 +2,7 @@ package com.guevara.murocampus
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -9,18 +10,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.guevara.murocampus.data.PostRepositoryRemote
 import com.guevara.murocampus.data.remote.RetrofitClient
 import com.guevara.murocampus.ui.PantallaLista
+import com.guevara.murocampus.ui.PantallaDetalle
 import com.guevara.murocampus.ui.theme.MuroCampusTheme
 import com.guevara.murocampus.viewmodel.PostsViewModel
 import com.guevara.murocampus.viewmodel.PostsViewModelFactory
@@ -44,11 +53,28 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MuroCampusApp(vm: PostsViewModel) {
+    // Navegación sencilla: con idSeleccionado == null se ve la lista.
+    var idSeleccionado by rememberSaveable { mutableStateOf<Int?>(null) }
+    val enLista = idSeleccionado == null
+
+    fun volver() {
+        idSeleccionado = null
+    }
+
+    // El botón Atrás del sistema vuelve a la lista sin recargarla.
+    BackHandler(enabled = !enLista) { volver() }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("MuroCampus", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (!enLista) {
+                        IconButton(onClick = { volver() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -57,10 +83,15 @@ fun MuroCampusApp(vm: PostsViewModel) {
             )
         },
     ) { padding ->
+        val idActual = idSeleccionado
         when {
+            idActual != null -> PantallaDetalle(vm, idActual, Modifier.padding(padding))
             else -> PantallaLista(
                 vm = vm,
-                onAbrirPost = { },
+                onAbrirPost = { id ->
+                    vm.abrir(id)
+                    idSeleccionado = id
+                },
                 modifier = Modifier.padding(padding)
             )
         }
