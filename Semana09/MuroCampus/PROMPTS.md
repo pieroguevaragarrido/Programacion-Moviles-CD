@@ -1,0 +1,38 @@
+# PROMPTS.md — Fase 2: mejora con IA (Gemini en Android Studio)
+
+**Laboratorio 09 · MuroCampus** · Rama `lab09-mejora-ia`
+
+## Mejoras realizadas
+
+| Mejora | Qué logra | Capas que cambian |
+| --- | --- | --- |
+| Encabezado con interceptor | Un Interceptor de OkHttp agrega `Accept: application/json` a todas las peticiones | RetrofitClient |
+| Búsqueda | Un campo de búsqueda filtra por título las publicaciones ya descargadas | ViewModel + View |
+| Borrar publicación | Botón **Eliminar** en el detalle con `@DELETE("posts/{id}")` y `Response<Unit>` | API + Repository + ViewModel + View |
+
+Se cumple la regla de la guía: son 3 mejoras y la de borrar cambia la interface de la API y el Repository.
+
+## Prompts
+
+| Prompt que escribí | Qué respondió Gemini | Qué cambié o descarté | Por qué |
+| --- | --- | --- | --- |
+| «En RetrofitClient.kt agrega un Interceptor de OkHttp que añada el encabezado Accept: application/json a todas las peticiones (con chain.request().newBuilder().header(...) y chain.proceed). Regístralo con addInterceptor antes del HttpLoggingInterceptor para que el encabezado se vea en Logcat. Cambia solo RetrofitClient.kt y no toques la baseUrl. Reglas: mantén la arquitectura MVVM + Repository; en el ViewModel no uses Retrofit, PostApi, HttpException ni Context; ningún Composable llama a la API ni al Repository; no uses GlobalScope; no dejes ningún catch vacío y, si atrapas Exception, relanza antes CancellationException; no uses URLs http://; no modifiques archivos que no necesites y mantén los nombres en español y el estilo del proyecto.» | Creó un Interceptor (lambda) que usa newBuilder().header("Accept", "application/json") y chain.proceed(...), y lo registró en el OkHttpClient.Builder de RetrofitClient. | Revisé el orden de los interceptores: el del encabezado debe ir antes del HttpLoggingInterceptor. Comprobé que la baseUrl siga con https y que solo cambiara RetrofitClient.kt. | Los interceptores de aplicación corren en el orden en que se agregan; si el log va primero, no muestra el encabezado nuevo. Lo comprobé en Logcat (filtro OkHttp) viendo Accept: application/json en cada petición. |
+| «Agrega un campo de búsqueda que filtre por título las publicaciones ya descargadas, sin llamar a la API. En PostsViewModel agrega un StateFlow<String> llamado busqueda, una función buscar(texto: String) y un StateFlow listaVisible: StateFlow<UiState<List<Post>>> que combine lista y busqueda (combine + stateIn con SharingStarted.WhileSubscribed(5000)) y filtre con contains(ignoreCase = true) solo cuando el estado es Exito. En PantallaLista agrega arriba un OutlinedTextField de una sola línea con el placeholder «Buscar por título» y un botón para borrar el texto, y usa listaVisible en lugar de lista; si no hay coincidencias debe verse «Sin publicaciones». El Composable solo habla con el ViewModel. Reglas: mantén la arquitectura MVVM + Repository; en el ViewModel no uses Retrofit, PostApi, HttpException ni Context; ningún Composable llama a la API ni al Repository; no uses GlobalScope; no dejes ningún catch vacío y, si atrapas Exception, relanza antes CancellationException; no uses URLs http://; no modifiques archivos que no necesites y mantén los nombres en español y el estilo del proyecto.» | Agregó busqueda (MutableStateFlow), buscar(texto) y listaVisible con combine + stateIn, y un OutlinedTextField en PantallaLista con botón para borrar el texto. | Verifiqué que el filtro se haga en el ViewModel y no en el Composable, que solo filtre cuando el estado es Exito, que use ignoreCase y que el campo lea busqueda del ViewModel en vez de guardar el texto en una variable local del Composable. | Filtrar en el Composable mezcla lógica con UI y pierde el texto al rotar. La búsqueda es sobre lo ya descargado, por eso no debe llamar a la API ni recargar la lista. |
+| «Agrega la opción de borrar una publicación con DELETE. (1) En PostApi agrega @DELETE("posts/{id}") suspend fun borrar(@Path("id") id: Int): Response<Unit> (retrofit2.Response). (2) En PostRepository agrega suspend fun borrar(id: Int): Result<Unit> y en PostRepositoryRemote revisa response.isSuccessful: si no es exitoso devuelve Result.failure(HttpException(response)); respeta el patrón de la función privada llamar. (3) En PostsViewModel agrega borrado: StateFlow<UiState<Unit>?> (null = aún no se pidió), borrar(id: Int) que, si tiene éxito, quita la publicación de lista y marca Exito, y si falla marca Error(mensajeDe(it)), y limpiarBorrado(). (4) En PantallaDetalle agrega un botón «Eliminar» con color de error que abra un AlertDialog de confirmación; mientras borra el botón se deshabilita, si falla muestra el mensaje y si tiene éxito llama a un callback onBorrado. (5) En MainActivity pasa onBorrado para volver a la lista y llamar a vm.limpiarBorrado(). No toques otras pantallas. Reglas: mantén la arquitectura MVVM + Repository; en el ViewModel no uses Retrofit, PostApi, HttpException ni Context; ningún Composable llama a la API ni al Repository; no uses GlobalScope; no dejes ningún catch vacío y, si atrapas Exception, relanza antes CancellationException; no uses URLs http://; no modifiques archivos que no necesites y mantén los nombres en español y el estilo del proyecto.» | Agregó borrar con @DELETE y Response<Unit> en PostApi, borrar en PostRepository y PostRepositoryRemote, borrado y borrar/limpiarBorrado en el ViewModel, el botón Eliminar con AlertDialog en PantallaDetalle y el callback onBorrado en MainActivity. | Comprobé que el Repository revise isSuccessful, que el catch no esté vacío y relance CancellationException, que el ViewModel no importe HttpException ni Retrofit, que PantallaDetalle no llame al Repository y que la confirmación use AlertDialog. | Con Response<Unit> un 404 o un 500 no lanza excepción: sin revisar isSuccessful la app mostraría éxito aunque el servidor falle. JSONPlaceholder no borra de verdad, así que la publicación reaparece si se recarga la lista; es el comportamiento esperado. |
+
+## Código que la IA puede devolver mal y cómo lo corrijo
+
+La guía pide revisar cuatro problemas típicos. Si alguno aparece en lo que genera Gemini, se corrige así y se anota en la tabla de arriba.
+
+| Problema | Por qué es un error | Cómo lo detecto | Cómo lo corrijo |
+| --- | --- | --- | --- |
+| `catch` vacío | Se traga la excepción: la app falla sin avisar y no se puede depurar. También rompe la cancelación de corrutinas si atrapa `CancellationException`. | `Select-String -Pattern "catch.*\{\s*\}"` | Relanzar `CancellationException` y devolver `Result.failure(e)` para que el ViewModel muestre un mensaje. |
+| Llamar a la API desde un Composable | La pantalla queda atada a Retrofit, se repite la llamada en cada recomposición y se rompe MVVM. | Buscar `RetrofitClient`, `PostApi` o `repo.` dentro de `ui/` | Mover la llamada al ViewModel y que el Composable solo observe el `StateFlow`. |
+| `GlobalScope` | La corrutina no se cancela cuando se destruye la pantalla y puede filtrar memoria. | Buscar `GlobalScope` en todo el proyecto | Usar `viewModelScope.launch` en el ViewModel. |
+| URL con `http://` | El tráfico viaja sin cifrar y Android bloquea el texto plano desde la API 28. | Buscar `http://` en los `.kt` | Usar siempre `https://`. |
+
+## Qué aprendí
+
+- Pedir una mejora por prompt, con las reglas de la arquitectura escritas en el mismo prompt, da código mucho más fácil de revisar y de commitear por separado.
+- Lo que más hay que vigilar en el código generado es lo que "compila pero está mal": excepciones tragadas, llamadas de red en la pantalla y `Response<Unit>` sin revisar `isSuccessful`.
+- La IA propone, yo decido: cada cambio se leyó, se probó en el emulador y se corrigió antes de hacer el commit.
