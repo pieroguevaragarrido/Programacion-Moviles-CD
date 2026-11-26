@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,7 @@ import com.guevara.murocampus.data.PostRepositoryRemote
 import com.guevara.murocampus.data.remote.RetrofitClient
 import com.guevara.murocampus.ui.PantallaLista
 import com.guevara.murocampus.ui.PantallaDetalle
+import com.guevara.murocampus.ui.PantallaCrear
 import com.guevara.murocampus.ui.theme.MuroCampusTheme
 import com.guevara.murocampus.viewmodel.PostsViewModel
 import com.guevara.murocampus.viewmodel.PostsViewModelFactory
@@ -55,10 +58,11 @@ class MainActivity : ComponentActivity() {
 fun MuroCampusApp(vm: PostsViewModel) {
     // Navegación sencilla: con idSeleccionado == null se ve la lista.
     var idSeleccionado by rememberSaveable { mutableStateOf<Int?>(null) }
-    val enLista = idSeleccionado == null
+    var creando by rememberSaveable { mutableStateOf(false) }
+    val enLista = idSeleccionado == null && !creando
 
     fun volver() {
-        idSeleccionado = null
+        if (creando) creando = false else idSeleccionado = null
     }
 
     // El botón Atrás del sistema vuelve a la lista sin recargarla.
@@ -82,9 +86,20 @@ fun MuroCampusApp(vm: PostsViewModel) {
                 )
             )
         },
+        floatingActionButton = {
+            if (enLista) {
+                FloatingActionButton(onClick = {
+                    vm.limpiarPublicacion()
+                    creando = true
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Nueva publicación")
+                }
+            }
+        }
     ) { padding ->
         val idActual = idSeleccionado
         when {
+            creando -> PantallaCrear(vm, Modifier.padding(padding))
             idActual != null -> PantallaDetalle(vm, idActual, Modifier.padding(padding))
             else -> PantallaLista(
                 vm = vm,

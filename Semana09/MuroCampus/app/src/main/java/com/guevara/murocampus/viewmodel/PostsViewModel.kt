@@ -74,4 +74,22 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
                 }
         }
     }
+
+    // ---------- Crear (null = todavía no se envió nada) ----------
+    private val _publicacion = MutableStateFlow<UiState<Post>?>(null)
+    val publicacion: StateFlow<UiState<Post>?> = _publicacion.asStateFlow()
+
+    fun publicar(titulo: String, texto: String) {
+        viewModelScope.launch {
+            _publicacion.value = UiState.Cargando
+            repo.crear(NuevoPost(userId = 1, title = titulo.trim(), body = texto.trim()))
+                .onSuccess { _publicacion.value = UiState.Exito(it) }
+                .onFailure { _publicacion.value = UiState.Error(mensajeDe(it)) }
+        }
+    }
+
+    /** Se llama al abrir el formulario para no mostrar el mensaje de un envío anterior. */
+    fun limpiarPublicacion() {
+        _publicacion.value = null
+    }
 }
