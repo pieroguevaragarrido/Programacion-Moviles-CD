@@ -25,6 +25,10 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     val lista: StateFlow<UiState<List<Post>>> = _lista.asStateFlow()
     private var trabajoLista: Job? = null
 
+    // ---------- Filtro por usuario (null = Todos) ----------
+    private val _usuarioFiltro = MutableStateFlow<Int?>(null)
+    val usuarioFiltro: StateFlow<Int?> = _usuarioFiltro.asStateFlow()
+
     init {
         cargar()
     }
@@ -33,11 +37,17 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
         trabajoLista?.cancel() // si el usuario pulsa rápido, solo vale la última petición
         trabajoLista = viewModelScope.launch {
             _lista.value = UiState.Cargando
-            val resultado = repo.listar()
+            val filtro = _usuarioFiltro.value
+            val resultado = if (filtro == null) repo.listar() else repo.porUsuario(filtro)
             resultado
                 .onSuccess { _lista.value = UiState.Exito(it) }
                 .onFailure { _lista.value = UiState.Error(mensajeDe(it)) }
         }
+    }
+
+    fun filtrar(userId: Int?) {
+        _usuarioFiltro.value = userId
+        cargar()
     }
 
     // ---------- Detalle ----------
