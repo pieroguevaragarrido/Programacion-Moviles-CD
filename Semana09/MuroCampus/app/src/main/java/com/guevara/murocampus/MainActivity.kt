@@ -100,7 +100,15 @@ fun MuroCampusApp(vm: PostsViewModel) {
         val idActual = idSeleccionado
         when {
             creando -> PantallaCrear(vm, Modifier.padding(padding))
-            idActual != null -> PantallaDetalle(vm, idActual, Modifier.padding(padding))
+            idActual != null -> PantallaDetalle(
+                vm = vm,
+                id = idActual,
+                onBorrado = {
+                    vm.limpiarBorrado()
+                    idSeleccionado = null
+                },
+                modifier = Modifier.padding(padding)
+            )
             else -> PantallaLista(
                 vm = vm,
                 onAbrirPost = { id ->

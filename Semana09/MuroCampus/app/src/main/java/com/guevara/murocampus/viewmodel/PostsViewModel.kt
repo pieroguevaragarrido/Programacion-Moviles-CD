@@ -115,4 +115,29 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     fun limpiarPublicacion() {
         _publicacion.value = null
     }
+
+    // ---------- Borrar (null = aún no se pidió) ----------
+    private val _borrado = MutableStateFlow<UiState<Unit>?>(null)
+    val borrado: StateFlow<UiState<Unit>?> = _borrado.asStateFlow()
+
+    fun borrar(id: Int) {
+        viewModelScope.launch {
+            _borrado.value = UiState.Cargando
+            repo.borrar(id)
+                .onSuccess {
+                    val actual = _lista.value
+                    if (actual is UiState.Exito) {
+                        _lista.value = UiState.Exito(actual.datos.filter { post -> post.id != id })
+                    }
+                    _borrado.value = UiState.Exito(Unit)
+                }
+                .onFailure {
+                    _borrado.value = UiState.Error(mensajeDe(it))
+                }
+        }
+    }
+
+    fun limpiarBorrado() {
+        _borrado.value = null
+    }
 }
