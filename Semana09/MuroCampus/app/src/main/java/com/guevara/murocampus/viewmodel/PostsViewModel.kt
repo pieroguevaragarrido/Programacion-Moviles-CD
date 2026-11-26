@@ -11,8 +11,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Lo que muestra la pantalla de detalle: la publicación y sus comentarios. */
@@ -24,6 +27,26 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     private val _lista = MutableStateFlow<UiState<List<Post>>>(UiState.Cargando)
     val lista: StateFlow<UiState<List<Post>>> = _lista.asStateFlow()
     private var trabajoLista: Job? = null
+
+    // ---------- Búsqueda ----------
+    private val _busqueda = MutableStateFlow("")
+    val busqueda: StateFlow<String> = _busqueda.asStateFlow()
+
+    fun buscar(texto: String) {
+        _busqueda.value = texto
+    }
+
+    val listaVisible: StateFlow<UiState<List<Post>>> = combine(lista, busqueda) { estado, query ->
+        if (estado is UiState.Exito) {
+            UiState.Exito(estado.datos.filter { it.title.contains(query, ignoreCase = true) })
+        } else {
+            estado
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = UiState.Cargando
+    )
 
     // ---------- Filtro por usuario (null = Todos) ----------
     private val _usuarioFiltro = MutableStateFlow<Int?>(null)
