@@ -14,6 +14,12 @@ object RetrofitClient {
 
     // El registro en BODY solo sirve para desarrollo: muestra el tráfico en Logcat.
     private val cliente = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("Accept", "application/json")
+                .build()
+            chain.proceed(request)
+        }
         .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
         .build()
 
