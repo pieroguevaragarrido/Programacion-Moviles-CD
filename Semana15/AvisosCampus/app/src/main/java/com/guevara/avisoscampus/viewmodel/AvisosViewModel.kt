@@ -37,6 +37,7 @@ class AvisosViewModel(private val repo: AvisosRepository) : ViewModel() {
     // ---------- Permiso ----------
     fun permisoRespondido(concedido: Boolean) {
         _permiso.value = if (concedido) PermisoUi.Concedido else PermisoUi.Denegado
+        if (concedido) _mensaje.value = null
     }
 
     // ---------- Aviso inmediato ----------
@@ -95,5 +96,10 @@ class AvisosViewModel(private val repo: AvisosRepository) : ViewModel() {
             )
             _eventos.emit(aviso)
         }
+    }
+
+    // ---------- Cuando algo sale mal ----------
+    fun noSePudoMostrar() {
+        _mensaje.value = "Sin permiso: el aviso se guardó en el historial, pero no se mostró"
     }
 }

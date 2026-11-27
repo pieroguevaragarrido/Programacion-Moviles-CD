@@ -58,6 +58,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val faltan by vm.faltan.collectAsState()
     val escuchando by vm.escuchandoAvion.collectAsState()
     val avisos by vm.avisos.collectAsState()
+    val mensaje by vm.mensaje.collectAsState()
 
     // ---------- Permiso ----------
     val lanzador = rememberLauncherForActivityResult(
@@ -74,6 +75,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     LaunchedEffect(Unit) {
         vm.eventos.collect { aviso ->
             val mostrado = Notificador.mostrar(contexto, aviso)
+            if (!mostrado) vm.noSePudoMostrar()
         }
     }
 
@@ -133,6 +135,28 @@ fun PantallaAvisos(vm: AvisosViewModel) {
 
             TarjetaAviso("Avisos") {
                 Button(onClick = { vm.avisarAhora() }) { Text("Mostrar aviso") }
+                mensaje?.let { texto ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(texto, color = MaterialTheme.colorScheme.onErrorContainer)
+                            OutlinedButton(onClick = {
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_APP_PACKAGE, contexto.packageName)
+                                contexto.startActivity(intent)
+                            }) {
+                                Text("Abrir ajustes")
+                            }
+                        }
+                    }
+                }
             }
 
             TarjetaAviso("Recordatorio") {
