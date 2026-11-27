@@ -61,7 +61,7 @@ AvisosRepository (interface)
 ## Capturas
 
 | Notificación en el panel | Recordatorio | Modo avión |
-| - | -- |  |
+| - | -- | - |
 | ![notificacion.png](capturas/notificacion.png) | ![recordatorio.png](capturas/recordatorio.png) | ![modo-avion.png](capturas/modo-avion.png) |
 
 | Historial | Permiso denegado |
@@ -75,3 +75,23 @@ AvisosRepository (interface)
 3. Para probar el modo avión en el emulador, desliza el panel superior dos veces y toca el ícono **Modo avión**.
 
 No necesita internet ni claves: todo es local y los datos son ficticios.
+
+## Para pensar
+
+**1. ¿Qué diferencia hay entre GET y POST? ¿Por qué crear lleva `@Body` y `porUsuario` lleva `@Query`?**
+GET **lee** datos y no cambia nada en el servidor; POST **crea** un recurso nuevo. Crear lleva `@Body` porque los datos (título, contenido, usuario) viajan como JSON en el cuerpo de la petición. `porUsuario` lleva `@Query` porque `userId` es solo un criterio de búsqueda que va en la URL (`posts?userId=2`) y un GET no tiene cuerpo.
+
+**2. ¿Por qué la ruta es `"posts"` y no `"/posts"`?**
+Porque Retrofit une la `baseUrl` con la ruta. Una ruta que empieza con `/` es absoluta y reemplaza todo el camino de la URL base. Con `"posts"` (ruta relativa) y la base terminada en `/`, la URL se arma bien.
+
+**3. ¿Por qué el Repository devuelve `Result` en vez de dejar que la excepción llegue al ViewModel?**
+Para que el ViewModel no tenga que conocer Retrofit, `HttpException` ni `IOException`, y para que ninguna falla de red cierre la app. El Repository atrapa todo y devuelve éxito o fallo; el ViewModel solo lo convierte en un `UiState`. Así se puede cambiar la fuente de datos sin tocar la pantalla. La única excepción que se relanza es `CancellationException`, para no romper la cancelación de las corrutinas.
+
+**4. ¿Qué pasa si olvidas el permiso INTERNET? ¿Y si olvidas `ignoreUnknownKeys` y el servidor agrega un campo nuevo?**
+Sin el permiso la app compila, pero nunca se conecta: aparece un error de red (`UnknownHostException` / "Sin conexión") aunque haya internet. Sin `ignoreUnknownKeys = true`, un campo nuevo que no existe en mi `data class` provoca una `SerializationException` ("Respuesta inesperada") y la app dejaría de funcionar por un cambio del servidor.
+
+**5. ¿Por qué la pantalla de lista usa un `when` sobre `UiState` y no un `if` con tres variables?**
+Porque `UiState` es una `sealed interface`: solo puede estar en **un** estado a la vez y el compilador obliga a cubrir todos los casos. Con tres variables (`cargando`, `error`, `datos`) se pueden dar combinaciones imposibles, como cargando y con error a la vez.
+
+**6. JSONPlaceholder no guarda los POST. ¿Cómo cambiaría tu app si usaras un servicio real?**
+Después de publicar, la lista debería recargarse (o agregar la publicación devuelta) y aparecería la nueva publicación con su id real. También habría que agregar autenticación (token en un interceptor), validar mejor los datos y manejar errores como 400, 401 o 500. La arquitectura no cambia: solo la interface de la API y el Repository.
