@@ -12,7 +12,8 @@ data class Aviso(
     val titulo: String,
     val texto: String,
     val origen: Origen,
-    val hora: String
+    val hora: String,
+    val urgente: Boolean = false
 )
 
 /** Estado del permiso de notificaciones tal como lo ve la pantalla. */

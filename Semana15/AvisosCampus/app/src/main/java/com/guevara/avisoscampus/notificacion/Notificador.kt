@@ -20,12 +20,15 @@ import com.guevara.avisoscampus.model.Aviso
 object Notificador {
 
     const val CANAL = "avisos"
+    const val CANAL_URGENTE = "urgentes"
 
     fun crearCanal(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val canal = NotificationChannel(CANAL, "Avisos", NotificationManager.IMPORTANCE_DEFAULT)
+            val canalUrgente = NotificationChannel(CANAL_URGENTE, "Urgentes", NotificationManager.IMPORTANCE_HIGH)
             val gestor = context.getSystemService(NotificationManager::class.java)
             gestor.createNotificationChannel(canal)
+            gestor.createNotificationChannel(canalUrgente)
         }
     }
 
@@ -46,12 +49,15 @@ object Notificador {
         val intent = Intent(context, MainActivity::class.java)
         val pendiente = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-        val notificacion = NotificationCompat.Builder(context, CANAL)
+        val canalId = if (aviso.urgente) CANAL_URGENTE else CANAL
+        val prioridad = if (aviso.urgente) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+
+        val notificacion = NotificationCompat.Builder(context, canalId)
             .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
             .setStyle(NotificationCompat.BigTextStyle().bigText(aviso.texto))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(prioridad)
             .setAutoCancel(true)
             .setContentIntent(pendiente)
             .build()
