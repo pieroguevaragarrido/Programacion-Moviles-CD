@@ -57,6 +57,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val permiso by vm.permiso.collectAsState()
     val faltan by vm.faltan.collectAsState()
     val escuchando by vm.escuchandoAvion.collectAsState()
+    val avisos by vm.avisos.collectAsState()
 
     // ---------- Permiso ----------
     val lanzador = rememberLauncherForActivityResult(
@@ -169,9 +170,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
                 }
             }
 
-            TarjetaAviso("Historial") {
-                SinFuncion()
-            }
+            HistorialAvisos(avisos)
         }
     }
 }
@@ -215,13 +214,4 @@ private fun EtiquetaPermiso(permiso: PermisoUi) {
             color = Color.White
         )
     }
-}
-
-@Composable
-private fun SinFuncion() {
-    Text(
-        text = "Aún sin función",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 }
