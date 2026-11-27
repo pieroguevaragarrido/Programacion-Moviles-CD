@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.guevara.avisoscampus.model.PermisoUi
 import com.guevara.avisoscampus.notificacion.Notificador
+import com.guevara.avisoscampus.receiver.ModoAvionReceiver
 import com.guevara.avisoscampus.viewmodel.AvisosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +56,7 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     val contexto = LocalContext.current
     val permiso by vm.permiso.collectAsState()
     val faltan by vm.faltan.collectAsState()
+    val escuchando by vm.escuchandoAvion.collectAsState()
 
     // ---------- Permiso ----------
     val lanzador = rememberLauncherForActivityResult(
@@ -71,6 +73,22 @@ fun PantallaAvisos(vm: AvisosViewModel) {
     LaunchedEffect(Unit) {
         vm.eventos.collect { aviso ->
             val mostrado = Notificador.mostrar(contexto, aviso)
+        }
+    }
+
+    // ---------- Receptor del modo avión: se registra al activar el switch y se quita siempre ----------
+    DisposableEffect(escuchando) {
+        if (escuchando) {
+            val receptor = ModoAvionReceiver { activo -> vm.alCambiarModoAvion(activo) }
+            ContextCompat.registerReceiver(
+                contexto,
+                receptor,
+                IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            onDispose { contexto.unregisterReceiver(receptor) }
+        } else {
+            onDispose { }
         }
     }
 
@@ -141,7 +159,14 @@ fun PantallaAvisos(vm: AvisosViewModel) {
             }
 
             TarjetaAviso("Receptor de anuncios") {
-                SinFuncion()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = escuchando,
+                        onCheckedChange = { vm.cambiarEscucha(it) }
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text("Escuchar el modo avión")
+                }
             }
 
             TarjetaAviso("Historial") {
