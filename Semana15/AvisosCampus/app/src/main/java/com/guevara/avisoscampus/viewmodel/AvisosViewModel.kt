@@ -6,6 +6,8 @@ import com.guevara.avisoscampus.data.AvisosRepository
 import com.guevara.avisoscampus.model.Aviso
 import com.guevara.avisoscampus.model.Origen
 import com.guevara.avisoscampus.model.PermisoUi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -43,5 +45,36 @@ class AvisosViewModel(private val repo: AvisosRepository) : ViewModel() {
             val aviso = repo.registrar("Tarea lista", "Tu entrega fue registrada", Origen.BOTON)
             _eventos.emit(aviso)
         }
+    }
+
+    // ---------- Recordatorio con cuenta regresiva ----------
+    private var trabajo: Job? = null
+
+    // Segundos que faltan; null cuando no hay recordatorio activo.
+    private val _faltan = MutableStateFlow<Int?>(null)
+    val faltan: StateFlow<Int?> = _faltan.asStateFlow()
+
+    fun recordarEn(segundos: Int = 10) {
+        if (trabajo?.isActive == true) return
+        trabajo = viewModelScope.launch {
+            try {
+                for (restante in segundos downTo 1) {
+                    _faltan.value = restante
+                    delay(1000)
+                }
+                val aviso = repo.registrar(
+                    "Recordatorio",
+                    "Revisa tu laboratorio pendiente",
+                    Origen.RECORDATORIO
+                )
+                _eventos.emit(aviso)
+            } finally {
+                _faltan.value = null // termine bien o se cancele
+            }
+        }
+    }
+
+    fun cancelarRecordatorio() {
+        trabajo?.cancel() // al cancelar no se emite ningún aviso
     }
 }
