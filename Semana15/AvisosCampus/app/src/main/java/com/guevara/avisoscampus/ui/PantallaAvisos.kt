@@ -53,6 +53,18 @@ import com.guevara.avisoscampus.viewmodel.AvisosViewModel
 fun PantallaAvisos(vm: AvisosViewModel) {
     // La pantalla sí tiene el contexto: ella muestra la notificación que el ViewModel pide.
     val contexto = LocalContext.current
+    val permiso by vm.permiso.collectAsState()
+
+    // ---------- Permiso ----------
+    val lanzador = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        vm.permisoRespondido(concedido)
+    }
+
+    LaunchedEffect(Unit) {
+        if (Notificador.tienePermiso(contexto)) vm.permisoRespondido(true)
+    }
 
     Scaffold(
         topBar = {
@@ -74,7 +86,22 @@ fun PantallaAvisos(vm: AvisosViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             TarjetaAviso("Permiso de notificaciones") {
-                SinFuncion()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Estado:")
+                    EtiquetaPermiso(permiso)
+                }
+                Button(onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        lanzador.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        vm.permisoRespondido(true)
+                    }
+                }) {
+                    Text("Permitir notificaciones")
+                }
             }
 
             TarjetaAviso("Avisos") {
@@ -116,6 +143,24 @@ internal fun TarjetaAviso(
             )
             contenido()
         }
+    }
+}
+
+/** Etiqueta de color: gris (sin pedir), verde (permitido) o rojo (denegado). */
+@Composable
+private fun EtiquetaPermiso(permiso: PermisoUi) {
+    val (texto, color) = when (permiso) {
+        PermisoUi.SinPedir -> "Sin pedir" to Color(0xFF757575)
+        PermisoUi.Concedido -> "Permitido" to Color(0xFF2E7D32)
+        PermisoUi.Denegado -> "Denegado" to Color(0xFFC62828)
+    }
+    Surface(shape = RoundedCornerShape(50), color = color) {
+        Text(
+            text = texto,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White
+        )
     }
 }
 
