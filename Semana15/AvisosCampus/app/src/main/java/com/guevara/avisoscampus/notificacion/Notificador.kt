@@ -4,13 +4,16 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.guevara.avisoscampus.R
+import com.guevara.avisoscampus.MainActivity
 import com.guevara.avisoscampus.model.Aviso
 
 /** Todo lo que toca el sistema de notificaciones vive aquí, no en el ViewModel. */
@@ -39,12 +42,17 @@ object Notificador {
     fun mostrar(context: Context, aviso: Aviso): Boolean {
         if (!tienePermiso(context)) return false
 
+        // Al tocar la notificación se abre la app. FLAG_IMMUTABLE: nadie puede alterar este Intent.
+        val intent = Intent(context, MainActivity::class.java)
+        val pendiente = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
         val notificacion = NotificationCompat.Builder(context, CANAL)
             .setSmallIcon(R.drawable.ic_notificacion)
             .setContentTitle(aviso.titulo)
             .setContentText(aviso.texto)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
+            .setContentIntent(pendiente)
             .build()
 
         // El id del aviso hace que cada notificación sea distinta.
